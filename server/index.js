@@ -121,14 +121,32 @@ app.get('/api/stats', async (req, res) => {
 
 // Serve static frontend files from the client/dist folder
 const path = require('path');
+const fs = require('fs');
 const clientDistPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientDistPath));
 
-// For any other route, send the React index.html
-app.use((req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
+// Explicitly handle GET / to ensure it works
+app.get('/', (req, res) => {
+  const indexPath = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend not built! Please run "npm run build" in the client folder.');
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+// For any other route, send the React index.html (Express 5 compatible regex)
+app.get(/(.*)/, (req, res) => {
+  const indexPath = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend not built! Please run "npm run build" in the client folder.');
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend API Server is LIVE!`);
+  console.log(`Listening on all network interfaces (Port ${PORT})`);
+  console.log(`Access the dashboard via your server's public IP address in your browser.`);
 });
