@@ -66,7 +66,10 @@ function App() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/stats');
+        // Automatically determine if we are running locally (development) or on the server (production)
+        const apiUrl = import.meta.env.DEV ? 'http://localhost:3001/api/stats' : '/api/stats';
+        
+        const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('Failed to fetch stats');
         const data = await response.json();
         setStats(data);

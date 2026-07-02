@@ -117,6 +117,18 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+
+
+// Serve static frontend files from the client/dist folder
+const path = require('path');
+const clientDistPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDistPath));
+
+// For any other route, send the React index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
 });
