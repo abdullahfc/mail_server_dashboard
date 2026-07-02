@@ -6,7 +6,7 @@ This repository contains the full-stack Mail Dashboard for monitoring ISPConfig 
 
 Since you have **4 different VPS servers**, this project is designed to use a **Single Shared Repository**. 
 
-You only need **one** repository (e.g., `ISPConfig-Mail-Dashboard`). You push the code to this single repo, and then you SSH into **Server 1, Server 2, Server 3, and Server 4** and `git clone` this exact same repository on all of them. 
+You only need **one** repository (e.g., `mail_server_dashboard`). You push the code to this single repo, and then you SSH into **Server 1, Server 2, Server 3, and Server 4** and `git clone` this exact same repository on all of them. 
 
 * **Benefit**: When you make an update to the dashboard, you only push it once. All 4 servers can just `git pull` the same update. The dashboard will automatically read the local `/var/log/mail.log` of whichever server it is currently running on, dynamically showing the correct server's data.
 
@@ -19,13 +19,8 @@ Follow these steps on **every** Ubuntu Server (Server 1 to 4) where you want to 
 ### 1. Clone the Code
 SSH into your server and run:
 ```bash
-# If using Approach A (One Repo):
-git clone https://github.com/your-username/ISPConfig-Mail-Dashboard.git
-
-# If using Approach B (Separate Repos), use the specific repo name:
-# git clone https://github.com/your-username/ISPConfig_VPS_Server_1.git
-
-cd ISPConfig-Mail-Dashboard  # (or your repo folder name)
+git clone https://github.com/abdullahfc/mail_server_dashboard.git
+cd mail_server_dashboard
 ```
 
 ### 2. Install Dependencies
