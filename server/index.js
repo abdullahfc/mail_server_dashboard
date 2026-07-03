@@ -158,7 +158,11 @@ app.get('/api/stats', async (req, res) => {
     });
     
     // Convert map to array and sort by date chronologically
-    const historicalData = Object.values(graphMap);
+    const historicalData = Object.values(graphMap).sort((a, b) => {
+      // Assuming current year since postfix logs (Jul 3) don't have year
+      const year = new Date().getFullYear();
+      return new Date(`${a.date} ${year}`) - new Date(`${b.date} ${year}`);
+    });
 
     res.json({
       totalBounces: parseInt(totalBounces) || 0,
@@ -236,12 +240,27 @@ app.get('/api/logs', async (req, res) => {
         };
       }
 
+      // Third fallback: NOQUEUE invalid emails
+      const noQueueMatch = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*NOQUEUE: reject:.*to=<([^>]+)>(.*)$/i);
+      if (noQueueMatch) {
+        return { 
+          date: noQueueMatch[1], 
+          email: noQueueMatch[2], 
+          status: type || 'invalid', 
+          reason: noQueueMatch[3].replace(/^:\s*/, '') // Clean up leading colon
+        };
+      }
+
       // Final fallback if everything fails, but only take the reason part
       const statusIdx = line.indexOf('status=');
-      const reasonStr = statusIdx > -1 ? line.substring(statusIdx) : line;
+      let reasonStr = statusIdx > -1 ? line.substring(statusIdx) : line;
+      
+      // Try to find email anyway
+      const anyEmailMatch = line.match(/to=<([^>]+)>/i);
+      
       return { 
         date: line.substring(0, 15), 
-        email: 'Unknown', 
+        email: anyEmailMatch ? anyEmailMatch[1] : 'Unknown', 
         status: type || 'unknown', 
         reason: reasonStr 
       };
