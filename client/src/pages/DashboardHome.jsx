@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Send, AlertCircle, Clock, Mail, CheckCircle, ShieldAlert, XCircle, UserMinus 
 } from 'lucide-react';
@@ -8,14 +8,54 @@ import {
 import StatCard from '../components/StatCard';
 import DataTable from '../components/DataTable';
 
-const DashboardHome = ({ stats }) => {
+const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
+  const [activeGraphMetric, setActiveGraphMetric] = useState('sent');
+  const [graphTimeRange, setGraphTimeRange] = useState('30d');
+
   const calcPercentage = (value) => {
     if (!stats.totalSent || stats.totalSent === 0) return 0;
     return ((value / stats.totalSent) * 100).toFixed(1);
   };
 
+  const handleGraphClick = (metric) => {
+    setActiveGraphMetric(metric);
+  };
+
+  // Maps metric to label for the graph
+  const getGraphLabel = (metric) => {
+    const labels = {
+      sent: 'Total Sent',
+      bounces: 'Total Bounces',
+      deferred: 'Total Deferred',
+      gmail: 'Gmail Bounces',
+      yahoo: 'Yahoo Bounces',
+      outlook: 'Outlook Bounces',
+      invalid: 'Total Invalid',
+      spam: 'Spam Reports'
+    };
+    return labels[metric] || 'Total Sent';
+  };
+
   return (
     <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        <select 
+          value={timeRange} 
+          onChange={(e) => setTimeRange(e.target.value)}
+          style={{ 
+            padding: '10px 16px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', 
+            borderRadius: '8px', color: '#fff', outline: 'none', cursor: 'pointer' 
+          }}
+        >
+          <option value="1h">Last 1 Hour</option>
+          <option value="24h">Last 24 Hours</option>
+          <option value="today">Today</option>
+          <option value="7d">Last 7 Days</option>
+          <option value="30d">Last 30 Days</option>
+          <option value="all">All Time (Years)</option>
+        </select>
+      </div>
+
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
         <StatCard 
           title="Total Sent Today" 
@@ -23,6 +63,7 @@ const DashboardHome = ({ stats }) => {
           icon={<Send size={24} />} 
           colorClass="icon-green"
           type="sent"
+          onGraphClick={handleGraphClick}
           delay=""
         />
         <StatCard 
@@ -41,6 +82,7 @@ const DashboardHome = ({ stats }) => {
           icon={<AlertCircle size={24} />} 
           colorClass="icon-red"
           type="bounces"
+          onGraphClick={handleGraphClick}
           delay="delay-1"
         />
         <StatCard 
@@ -50,6 +92,7 @@ const DashboardHome = ({ stats }) => {
           icon={<Clock size={24} />} 
           colorClass="icon-yellow"
           type="deferred"
+          onGraphClick={handleGraphClick}
           delay="delay-2"
         />
       </div>
@@ -62,6 +105,7 @@ const DashboardHome = ({ stats }) => {
           icon={<Mail size={24} />} 
           colorClass="icon-purple"
           type="gmail"
+          onGraphClick={handleGraphClick}
           delay="delay-3"
         />
         <StatCard 
@@ -71,6 +115,7 @@ const DashboardHome = ({ stats }) => {
           icon={<Mail size={24} />} 
           colorClass="icon-purple"
           type="yahoo"
+          onGraphClick={handleGraphClick}
           delay="delay-3"
         />
         <StatCard 
@@ -80,6 +125,7 @@ const DashboardHome = ({ stats }) => {
           icon={<Mail size={24} />} 
           colorClass="icon-blue"
           type="outlook"
+          onGraphClick={handleGraphClick}
           delay="delay-4"
         />
         <StatCard 
@@ -89,6 +135,7 @@ const DashboardHome = ({ stats }) => {
           icon={<XCircle size={24} />} 
           colorClass="icon-red"
           type="invalid"
+          onGraphClick={handleGraphClick}
           delay="delay-4"
         />
         <StatCard 
@@ -98,6 +145,7 @@ const DashboardHome = ({ stats }) => {
           icon={<ShieldAlert size={24} />} 
           colorClass="icon-yellow"
           type="spam"
+          onGraphClick={handleGraphClick}
           delay="delay-4"
         />
         <StatCard 
@@ -110,13 +158,28 @@ const DashboardHome = ({ stats }) => {
       </div>
 
       <div className="glass-panel chart-container fade-in delay-3">
-        <h2>30-Day Activity Overview (Total Sent)</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ margin: 0 }}>Activity Overview ({getGraphLabel(activeGraphMetric)})</h2>
+          <select 
+            value={graphTimeRange} 
+            onChange={(e) => setGraphTimeRange(e.target.value)}
+            style={{ 
+              padding: '6px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '6px', color: '#fff', outline: 'none', cursor: 'pointer' 
+            }}
+          >
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="all">All Time (Years)</option>
+          </select>
+        </div>
         <div style={{ width: '100%', height: '300px' }}>
           {stats.historicalData && stats.historicalData.length > 0 ? (
             <ResponsiveContainer>
               <AreaChart data={stats.historicalData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
@@ -128,12 +191,12 @@ const DashboardHome = ({ stats }) => {
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
                   itemStyle={{ color: '#10b981' }}
                 />
-                <Area type="monotone" dataKey="sent" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorSent)" />
+                <Area type="monotone" dataKey={activeGraphMetric} stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorMetric)" />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.5)' }}>
-              No historical data available for this live view.
+              No historical data available.
             </div>
           )}
         </div>

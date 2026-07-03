@@ -54,11 +54,17 @@ const mockData = {
   historicalData: Array.from({ length: 30 }).map((_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (29 - i));
+    const sent = Math.floor(Math.random() * 5000) + 15000;
     return {
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      sent: Math.floor(Math.random() * 5000) + 15000,
-      bounces: Math.floor(Math.random() * 100) + 20,
-      deferred: Math.floor(Math.random() * 50) + 10,
+      sent: sent,
+      bounces: Math.floor(sent * 0.01),
+      deferred: Math.floor(sent * 0.005),
+      gmail: Math.floor(sent * 0.005),
+      yahoo: Math.floor(sent * 0.002),
+      outlook: Math.floor(sent * 0.001),
+      invalid: Math.floor(sent * 0.008),
+      spam: Math.floor(sent * 0.0005)
     };
   })
 };

@@ -10,11 +10,14 @@ function App() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeRange, setTimeRange] = useState('today'); // New state for global range
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiUrl = import.meta.env.DEV ? 'http://localhost:3001/api/stats' : '/api/stats';
+        const apiUrl = import.meta.env.DEV 
+          ? `http://localhost:3001/api/stats?range=${timeRange}` 
+          : `/api/stats?range=${timeRange}`;
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('Failed to fetch stats');
         const data = await response.json();
@@ -31,7 +34,7 @@ function App() {
     // Refresh every 5 minutes
     const interval = setInterval(fetchStats, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timeRange]);
 
   if (loading) {
     return (
@@ -70,7 +73,7 @@ function App() {
         </header>
 
         <Routes>
-          <Route path="/" element={<DashboardHome stats={stats} />} />
+          <Route path="/" element={<DashboardHome stats={stats} timeRange={timeRange} setTimeRange={setTimeRange} />} />
           <Route path="/logs/:type" element={<LogsView />} />
         </Routes>
       </div>

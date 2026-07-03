@@ -46,40 +46,52 @@ app.get('/api/stats', async (req, res) => {
   }
 
   try {
-    const dateStr = `$(date +'%b %e')`;
+    const { range } = req.query;
+    
+    // Default dateStr is today. If range > today, we just search the entire mail.log
+    let dateStr = `$(date +'%b %e')`;
+    let grepDateCmd = `grep "${dateStr}"`;
+
+    if (range && range !== 'today' && range !== '1h' && range !== '24h') {
+      // For 7d, 30d, all, we just grep everything in the current mail.log (usually a few days to a week)
+      // For a more advanced setup, this should loop through zgrep on rotated logs.
+      grepDateCmd = `cat`; // This essentially bypasses the date filter
+    }
+
     const logFile = `/var/log/mail.log`;
 
     // 1. Total Bounces
-    const totalBouncesCmd = `grep "${dateStr}" ${logFile} | grep "status=bounced" | wc -l`;
+    const totalBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | wc -l`;
     // 2. Gmail Bounces
-    const gmailBouncesCmd = `grep "${dateStr}" ${logFile} | grep "status=bounced" | grep -i "gmail" | wc -l`;
+    const gmailBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -i "gmail" | wc -l`;
     // 3. Outlook Bounces
-    const outlookBouncesCmd = `grep "${dateStr}" ${logFile} | grep "status=bounced" | grep -iE "outlook|hotmail" | wc -l`;
+    const outlookBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "outlook|hotmail" | wc -l`;
     // 4. Yahoo Bounces
-    const yahooBouncesCmd = `grep "${dateStr}" ${logFile} | grep "status=bounced" | grep -iE "yahoo|ymail|rocketmail" | wc -l`;
+    const yahooBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "yahoo|ymail|rocketmail" | wc -l`;
     // 5. Total Sent
-    const totalSentCmd = `grep "${dateStr}" ${logFile} | grep "status=sent" | wc -l`;
+    const totalSentCmd = `${grepDateCmd} ${logFile} | grep "status=sent" | wc -l`;
     // 6. Total Deferred
-    const totalDeferredCmd = `grep "${dateStr}" ${logFile} | grep "status=deferred" | wc -l`;
+    const totalDeferredCmd = `${grepDateCmd} ${logFile} | grep "status=deferred" | wc -l`;
     // 7. Spam Reports
-    const totalSpamCmd = `grep "${dateStr}" ${logFile} | grep -i "spam" | wc -l`;
+    const totalSpamCmd = `${grepDateCmd} ${logFile} | grep -i "spam" | wc -l`;
     // 8. Invalid Emails
-    const totalInvalidCmd = `grep "${dateStr}" ${logFile} | grep -iE "user unknown|recipient address rejected|not found" | wc -l`;
+    const totalInvalidCmd = `${grepDateCmd} ${logFile} | grep -iE "user unknown|recipient address rejected|not found" | wc -l`;
     
     // Historical Data (last 30 days assuming log file holds it)
-    const historicalDataCmd = `grep "status=sent" ${logFile} | awk '{print $1" "$2}' | uniq -c | tail -n 30`;
+    // We will grep all required statuses to build the graph data
+    const historicalDataCmd = `grep -E "status=sent|status=bounced|status=deferred" ${logFile} | awk '{print $1" "$2" "$7}' | uniq -c | tail -n 1000`;
 
     // Top Sender Domains (Gmail)
-    const topSenderGmailCmd = `grep "${dateStr}" ${logFile} | grep "status=bounced" | grep -i "gmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c`;
+    const topSenderGmailCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -i "gmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
     // Top Sender Domains (Outlook)
-    const topSenderOutlookCmd = `grep "${dateStr}" ${logFile} | grep "status=bounced" | grep -iE "outlook|hotmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c`;
+    const topSenderOutlookCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "outlook|hotmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
     // Top Sender Domains (Yahoo)
-    const topSenderYahooCmd = `grep "${dateStr}" ${logFile} | grep "status=bounced" | grep -iE "yahoo|ymail|rocketmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c`;
+    const topSenderYahooCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "yahoo|ymail|rocketmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
 
     // 8. Top Recipient Emails with Errors
-    const topRecipientEmailsCmd = `grep "${dateStr}" ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | sort | uniq -c | sort -nr | head -n 10`;
+    const topRecipientEmailsCmd = `${grepDateCmd} ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | sort | uniq -c | sort -nr | head -n 10`;
     // 9. Top Recipient Domains with Errors
-    const topRecipientDomainsCmd = `grep "${dateStr}" ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
+    const topRecipientDomainsCmd = `${grepDateCmd} ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
 
     // Execute simple counts
     const [

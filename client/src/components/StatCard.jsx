@@ -1,15 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BarChart2, List } from 'lucide-react';
 
-const StatCard = ({ title, value, icon, colorClass, delay, type, percentage }) => {
+const StatCard = ({ title, value, icon, colorClass, delay, type, percentage, onGraphClick }) => {
   const navigate = useNavigate();
 
   return (
-    <div 
-      className={`glass-panel stat-card fade-in ${delay}`} 
-      onClick={() => type && navigate(`/logs/${type}`)}
-      style={{ cursor: type ? 'pointer' : 'default', position: 'relative' }}
-    >
+    <div className={`glass-panel stat-card fade-in ${delay}`} style={{ position: 'relative' }}>
       <div className="stat-info">
         <div className="title">{title}</div>
         <div className="value">{(value !== undefined && value !== null) ? value.toLocaleString() : '0'}</div>
@@ -21,6 +18,39 @@ const StatCard = ({ title, value, icon, colorClass, delay, type, percentage }) =
       </div>
       <div className={`stat-icon ${colorClass}`}>
         {icon}
+      </div>
+      
+      {/* Action Buttons */}
+      <div style={{ 
+        position: 'absolute', bottom: '12px', right: '16px', 
+        display: 'flex', gap: '8px'
+      }}>
+        {onGraphClick && (
+          <button 
+            onClick={() => onGraphClick(type)}
+            title="View Graph"
+            style={{ 
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.1)', 
+              color: '#fff', padding: '6px', borderRadius: '6px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+          >
+            <BarChart2 size={16} />
+          </button>
+        )}
+        {type && (
+          <button 
+            onClick={() => navigate(`/logs/${type}`)}
+            title="View Logs"
+            style={{ 
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.1)', 
+              color: '#fff', padding: '6px', borderRadius: '6px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+          >
+            <List size={16} />
+          </button>
+        )}
       </div>
     </div>
   );
