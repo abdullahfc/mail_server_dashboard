@@ -36,6 +36,19 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
     return labels[metric] || 'Total Sent';
   };
 
+  const getFilteredHistoricalData = () => {
+    if (!stats || !stats.historicalData || stats.historicalData.length === 0) return [];
+    
+    let days = 30;
+    if (graphTimeRange === '24h') days = 1; // Show last 1 data point (or more if intra-day, but our backend groups by day)
+    else if (graphTimeRange === '7d') days = 7;
+    else if (graphTimeRange === '30d') days = 30;
+    else if (graphTimeRange === 'all') days = 365;
+
+    // Filter to last 'days' items
+    return stats.historicalData.slice(-days);
+  };
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
@@ -175,9 +188,9 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           </select>
         </div>
         <div style={{ width: '100%', height: '300px' }}>
-          {stats.historicalData && stats.historicalData.length > 0 ? (
+          {getFilteredHistoricalData().length > 0 ? (
             <ResponsiveContainer>
-              <AreaChart data={stats.historicalData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={getFilteredHistoricalData()} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
