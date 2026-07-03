@@ -241,13 +241,13 @@ app.get('/api/logs', async (req, res) => {
       }
 
       // Third fallback: NOQUEUE invalid emails
-      const noQueueMatch = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*NOQUEUE: reject:.*to=<([^>]+)>(.*)$/i);
+      const noQueueMatch = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*NOQUEUE: reject:.*?:\s*(.*?)(?:;?\s*from=.*to=<([^>]+)>)/i);
       if (noQueueMatch) {
         return { 
           date: noQueueMatch[1], 
-          email: noQueueMatch[2], 
+          email: noQueueMatch[3], 
           status: type || 'invalid', 
-          reason: noQueueMatch[3].replace(/^:\s*/, '') // Clean up leading colon
+          reason: noQueueMatch[2]
         };
       }
 
