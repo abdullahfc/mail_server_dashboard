@@ -2,8 +2,13 @@ const mockData = {
   totalBounces: 207,
   gmailBounces: 112,
   outlookBounces: 45,
+  yahooBounces: 30,
   totalSent: 24655,
+  totalDelivered: 24359,
   totalDeferred: 89,
+  totalSpam: 12,
+  totalInvalid: 195,
+  totalUnsubscribes: 5,
   topBouncedDomainsGmail: [
     { domain: 'example.com', count: 32 },
     { domain: 'test.org', count: 18 },
@@ -16,6 +21,11 @@ const mockData = {
     { domain: 'promo-updates.net', count: 14 },
     { domain: 'bounces-r-us.org', count: 6 },
     { domain: 'hello-world.com', count: 4 }
+  ],
+  topBouncedDomainsYahoo: [
+    { domain: 'yahoo.com', count: 15 },
+    { domain: 'ymail.com', count: 8 },
+    { domain: 'rocketmail.com', count: 3 }
   ],
   topRecipientEmailsError: [
     { email: 'csr@master-roofinginc.com', count: 15 },
