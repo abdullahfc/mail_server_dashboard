@@ -5,10 +5,10 @@ const mockData = {
   yahooBounces: 30,
   totalSent: 24655,
   totalDelivered: 24359,
-  totalDeferred: 89,
-  totalSpam: 12,
-  totalInvalid: 195,
-  totalUnsubscribes: 5,
+  totalDeferred: 47,
+  totalInvalid: 12,
+  activeQueue: 18,
+  totalSpam: 0,
   topBouncedDomainsGmail: [
     { domain: 'example.com', count: 32 },
     { domain: 'test.org', count: 18 },
@@ -26,6 +26,17 @@ const mockData = {
     { domain: 'yahoo.com', count: 15 },
     { domain: 'ymail.com', count: 8 },
     { domain: 'rocketmail.com', count: 3 }
+  ],
+  topSpamDomains: [
+    { domain: 'gmail.com', count: 420 },
+    { domain: 'hotmail.com', count: 310 },
+    { domain: 'yahoo.com', count: 150 },
+    { domain: 'aol.com', count: 85 }
+  ],
+  blockedDomains: [
+    { domain: 'fake-domain123.com', count: 1 },
+    { domain: 'not-a-real-site.org', count: 1 },
+    { domain: 'invalid-email-host.net', count: 1 }
   ],
   topRecipientEmailsError: [
     { email: 'csr@master-roofinginc.com', count: 15 },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Send, AlertCircle, Clock, Mail, CheckCircle, ShieldAlert, XCircle, UserMinus 
+  Send, AlertCircle, Clock, Mail, CheckCircle, XCircle, Database
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -108,6 +108,14 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           onGraphClick={handleGraphClick}
           delay="delay-2"
         />
+        <StatCard 
+          title="Active Queue" 
+          value={stats.activeQueue} 
+          icon={<Database size={24} />} 
+          colorClass="icon-blue"
+          type="queue"
+          delay="delay-3"
+        />
       </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginTop: '24px' }}>
@@ -152,20 +160,13 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-4"
         />
         <StatCard 
-          title="Spam Reports" 
-          value={stats.totalSpam} 
-          percentage={calcPercentage(stats.totalSpam)}
-          icon={<ShieldAlert size={24} />} 
-          colorClass="icon-yellow"
-          type="spam"
+          title="Total Invalid" 
+          value={stats.totalInvalid} 
+          percentage={calcPercentage(stats.totalInvalid)}
+          icon={<XCircle size={24} />} 
+          colorClass="icon-red"
+          type="invalid"
           onGraphClick={handleGraphClick}
-          delay="delay-4"
-        />
-        <StatCard 
-          title="Unsubscribes" 
-          value={stats.totalUnsubscribes} 
-          icon={<UserMinus size={24} />} 
-          colorClass="icon-gray"
           delay="delay-4"
         />
       </div>
@@ -223,6 +224,11 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
         <DataTable title="Gmail Bounces by Sender Domain" data={stats.topBouncedDomainsGmail} valueKey="domain" delay="delay-4" />
         <DataTable title="Yahoo Bounces by Sender Domain" data={stats.topBouncedDomainsYahoo} valueKey="domain" delay="delay-5" />
+      </div>
+
+      <div className="grid-2-cols" style={{ marginTop: '24px' }}>
+        <DataTable title="Top Domains Reporting Spam" data={stats.topSpamDomains} valueKey="domain" delay="delay-5" />
+        <DataTable title="Blocked / Domain Not Found" data={stats.blockedDomains} valueKey="domain" delay="delay-5" />
       </div>
     </>
   );

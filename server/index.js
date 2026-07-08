@@ -72,10 +72,12 @@ app.get('/api/stats', async (req, res) => {
     const totalSentCmd = `${grepDateCmd} ${logFile} | grep "status=sent" | wc -l`;
     // 6. Total Deferred
     const totalDeferredCmd = `${grepDateCmd} ${logFile} | grep "status=deferred" | wc -l`;
-    // 7. Spam Reports
-    const totalSpamCmd = `${grepDateCmd} ${logFile} | grep -i "spam" | wc -l`;
-    // 8. Invalid Emails
-    const totalInvalidCmd = `${grepDateCmd} ${logFile} | grep -iE "user unknown|recipient address rejected|not found" | wc -l`;
+    // 7. Active Mail Queue Size (uses mailq / postqueue)
+    // Note: postqueue outputs details for each message. The summary line is at the bottom, but just counting lines starting with hex ID works best.
+    const activeQueueCmd = `mailq | grep -c "^[A-F0-9]" || echo "0"`;
+    
+    // 8. Invalid Emails (Count Unique Emails only)
+    const totalInvalidCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "user unknown|not found|no route" | grep -oP 'to=<\\K[^>]+' | sort -u | wc -l`;
     
     // Historical Data (last 30 days assuming log file holds it)
     // Extracts date and status, counts them grouped by date
@@ -92,6 +94,10 @@ app.get('/api/stats', async (req, res) => {
     const topRecipientEmailsCmd = `${grepDateCmd} ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | sort | uniq -c | sort -nr | head -n 10`;
     // 9. Top Recipient Domains with Errors
     const topRecipientDomainsCmd = `${grepDateCmd} ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
+    // 10. Top Domains Reporting Spam
+    const topSpamDomainsCmd = `${grepDateCmd} ${logFile} | grep -i "spam" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
+    // 11. Domain Not Found (Blocked Candidates) - Unique count
+    const domainNotFoundCmd = `${grepDateCmd} ${logFile} | grep -i "domain not found" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort -u | awk '{print "1 "$1}' | head -n 20`;
 
     // Execute simple counts
     const [
@@ -101,7 +107,7 @@ app.get('/api/stats', async (req, res) => {
       yahooBounces,
       totalSent,
       totalDeferred,
-      totalSpam,
+      activeQueue,
       totalInvalid
     ] = await Promise.all([
       runCommand(totalBouncesCmd),
@@ -110,7 +116,7 @@ app.get('/api/stats', async (req, res) => {
       runCommand(yahooBouncesCmd),
       runCommand(totalSentCmd),
       runCommand(totalDeferredCmd),
-      runCommand(totalSpamCmd),
+      runCommand(activeQueueCmd),
       runCommand(totalInvalidCmd)
     ]);
 
@@ -121,6 +127,8 @@ app.get('/api/stats', async (req, res) => {
       topSenderYahooOutput,
       topRecipientEmailsOutput,
       topRecipientDomainsOutput,
+      topSpamDomainsOutput,
+      domainNotFoundOutput,
       historicalDataOutput
     ] = await Promise.all([
       runCommand(topSenderGmailCmd),
@@ -128,6 +136,8 @@ app.get('/api/stats', async (req, res) => {
       runCommand(topSenderYahooCmd),
       runCommand(topRecipientEmailsCmd),
       runCommand(topRecipientDomainsCmd),
+      runCommand(topSpamDomainsCmd),
+      runCommand(domainNotFoundCmd),
       runCommand(historicalDataCmd)
     ]);
 
@@ -172,14 +182,15 @@ app.get('/api/stats', async (req, res) => {
       totalSent: parseInt(totalSent) || 0,
       totalDelivered: (parseInt(totalSent) || 0) - (parseInt(totalBounces) || 0),
       totalDeferred: parseInt(totalDeferred) || 0,
-      totalSpam: parseInt(totalSpam) || 0,
+      activeQueue: parseInt(activeQueue) || 0,
       totalInvalid: parseInt(totalInvalid) || 0,
-      totalUnsubscribes: 0, // Mocked for now since DB isn't connected
       topBouncedDomainsGmail: parseCountLines(topSenderGmailOutput, 'domain'),
       topBouncedDomainsOutlook: parseCountLines(topSenderOutlookOutput, 'domain'),
       topBouncedDomainsYahoo: parseCountLines(topSenderYahooOutput, 'domain'),
       topRecipientEmailsError: parseCountLines(topRecipientEmailsOutput, 'email'),
       topRecipientDomainsError: parseCountLines(topRecipientDomainsOutput, 'domain'),
+      topSpamDomains: parseCountLines(topSpamDomainsOutput, 'domain'),
+      blockedDomains: parseCountLines(domainNotFoundOutput, 'domain'),
       historicalData: historicalData
     });
 
