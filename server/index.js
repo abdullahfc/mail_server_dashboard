@@ -212,7 +212,7 @@ app.get('/api/logs', async (req, res) => {
   }
 
   try {
-    const { type, search } = req.query;
+    const { type, search, range } = req.query;
     const logFile = `/var/log/mail.log`;
     
     let grepPattern = '';
@@ -220,7 +220,7 @@ app.get('/api/logs', async (req, res) => {
     else if (type === 'bounces') grepPattern = 'status=bounced';
     else if (type === 'deferred') grepPattern = 'status=deferred';
     else if (type === 'spam') grepPattern = 'spam';
-    else if (type === 'invalid') grepPattern = 'user unknown|recipient address rejected';
+    else if (type === 'invalid') grepPattern = 'user unknown|recipient address rejected|not found|no route';
     else if (type === 'gmail') grepPattern = 'status=bounced.*gmail';
     else if (type === 'outlook') grepPattern = 'status=bounced.*(outlook|hotmail)';
     else if (type === 'yahoo') grepPattern = 'status=bounced.*(yahoo|ymail)';
@@ -230,7 +230,15 @@ app.get('/api/logs', async (req, res) => {
     const safeSearch = search ? search.replace(/["$\`\\]/g, '') : '';
     const searchCmd = safeSearch ? `| grep -i "${safeSearch}"` : '';
 
-    const cmd = `grep -iE "${safeGrep}" ${logFile} ${searchCmd} | tail -n 200 | sort -r`;
+    let grepDateCmd = '';
+    if (!range || range === 'today') {
+      const dateStr = `$(date +'%b %e')`;
+      grepDateCmd = `grep "${dateStr}" ${logFile} | `;
+    } else {
+      grepDateCmd = `cat ${logFile} | `;
+    }
+
+    const cmd = `${grepDateCmd} grep -iE "${safeGrep}" ${searchCmd} | tail -n 200 | sort -r`;
     const rawOutput = await runCommand(cmd);
 
     const logs = rawOutput.split('\n').filter(Boolean).map(line => {

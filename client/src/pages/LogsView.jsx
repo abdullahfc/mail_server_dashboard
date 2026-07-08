@@ -10,6 +10,7 @@ const LogsView = () => {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [range, setRange] = useState('today');
 
   // Debounce search input
   useEffect(() => {
@@ -24,8 +25,8 @@ const LogsView = () => {
       setLoading(true);
       try {
         const apiUrl = import.meta.env.DEV 
-          ? `http://localhost:3001/api/logs?type=${type}&search=${debouncedSearch}` 
-          : `/api/logs?type=${type}&search=${debouncedSearch}`;
+          ? `http://localhost:3001/api/logs?type=${type}&search=${debouncedSearch}&range=${range}` 
+          : `/api/logs?type=${type}&search=${debouncedSearch}&range=${range}`;
         
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error('Failed to fetch logs');
@@ -40,7 +41,7 @@ const LogsView = () => {
     };
 
     fetchLogs();
-  }, [type, debouncedSearch]);
+  }, [type, debouncedSearch, range]);
 
   const getTitle = () => {
     const titles = {
@@ -86,13 +87,16 @@ const LogsView = () => {
           />
         </div>
         
-        <select style={{ 
-          padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', 
-          borderRadius: '8px', color: '#fff', outline: 'none' 
-        }}>
+        <select 
+          value={range}
+          onChange={(e) => setRange(e.target.value)}
+          style={{ 
+            padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', 
+            borderRadius: '8px', color: '#fff', outline: 'none' 
+          }}
+        >
           <option value="today">Today</option>
-          <option value="7d" disabled>Last 7 Days (Coming Soon)</option>
-          <option value="30d" disabled>Last 30 Days (Coming Soon)</option>
+          <option value="all">All Time</option>
         </select>
       </div>
 
@@ -113,7 +117,7 @@ const LogsView = () => {
             No logs found for this filter.
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '600px' }}>
             <table className="data-table" style={{ width: '100%', minWidth: '800px' }}>
               <thead>
                 <tr>
