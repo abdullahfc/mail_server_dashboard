@@ -3,6 +3,8 @@ const cors = require('cors');
 const { exec } = require('child_process');
 const os = require('os');
 const mockData = require('./mockData');
+const { runQuery } = require('./db');
+const { startParser } = require('./parser');
 
 const app = express();
 app.use(cors());
@@ -48,80 +50,31 @@ app.get('/api/stats', async (req, res) => {
   try {
     const { range } = req.query;
     
-    // Default dateStr is today. If range > today, we just search the entire mail.log
-    let dateStr = `$(date +'%b %e')`;
-    let grepDateCmd = `grep "${dateStr}"`;
+    // SQLite Date Filtering
+    let dateClause = '';
+    const todayPrefix = new Date().toISOString().slice(0, 10);
+    if (!range || range === 'today') dateClause = `date LIKE '${todayPrefix}%'`;
+    else if (range === '1h') dateClause = `date >= datetime('now', '-1 hour', 'localtime')`;
+    else if (range === '24h') dateClause = `date >= datetime('now', '-24 hour', 'localtime')`;
+    else if (range === '7d') dateClause = `date >= datetime('now', '-7 day', 'localtime')`;
+    else if (range === '30d') dateClause = `date >= datetime('now', '-30 day', 'localtime')`;
+    else if (range === 'all') dateClause = `1=1`;
+    else dateClause = `date LIKE '${todayPrefix}%'`;
 
-    if (range && range !== 'today' && range !== '1h' && range !== '24h') {
-      // For 7d, 30d, all, we just grep everything in the current mail.log (usually a few days to a week)
-      // For a more advanced setup, this should loop through zgrep on rotated logs.
-      grepDateCmd = `cat`; // This essentially bypasses the date filter
-    }
-
-    const logFile = `/var/log/mail.log`;
-
-    // 1. Total Bounces
-    const totalBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | wc -l`;
-    // 2. Gmail Bounces
-    const gmailBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -i "gmail" | wc -l`;
-    // 3. Outlook Bounces
-    const outlookBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "outlook|hotmail" | wc -l`;
-    // 4. Yahoo Bounces
-    const yahooBouncesCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "yahoo|ymail|rocketmail" | wc -l`;
-    // 5. Total Sent
-    const totalSentCmd = `${grepDateCmd} ${logFile} | grep "status=sent" | wc -l`;
-    // 6. Total Deferred
-    const totalDeferredCmd = `${grepDateCmd} ${logFile} | grep "status=deferred" | wc -l`;
-    // 7. Active Mail Queue Size (uses mailq / postqueue)
-    // Note: postqueue outputs details for each message. The summary line is at the bottom, but just counting lines starting with hex ID works best.
+    // Active Queue (still uses mailq)
     const activeQueueCmd = `mailq | grep -c "^[A-F0-9]" || echo "0"`;
-    
-    // 8. Invalid Emails (Count Unique Emails only)
-    const totalInvalidCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "user unknown|not found|no route" | grep -oP 'to=<\\K[^>]+' | sort -u | wc -l`;
-    
-    // Historical Data (last 30 days assuming log file holds it)
-    // Extracts date and status, counts them grouped by date
-    const historicalDataCmd = `grep -E "status=sent|status=bounced|status=deferred" ${logFile} | sed -E 's/^(... [ 0-9]+) .* (status=[a-z]+).*/\\1 \\2/' | sort | uniq -c | tail -n 90`;
+    const activeQueueRaw = await runCommand(activeQueueCmd);
+    const activeQueue = parseInt(activeQueueRaw) || 0;
 
-    // Top Sender Domains (Gmail)
-    const topSenderGmailCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -i "gmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
-    // Top Sender Domains (Outlook)
-    const topSenderOutlookCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "outlook|hotmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
-    // Top Sender Domains (Yahoo)
-    const topSenderYahooCmd = `${grepDateCmd} ${logFile} | grep "status=bounced" | grep -iE "yahoo|ymail|rocketmail" | grep -oP '\\w+(?=: to=)' | while read qid; do grep "$qid: from=" ${logFile}; done | grep -oP 'from=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
-
-    // 8. Top Recipient Emails with Errors
-    const topRecipientEmailsCmd = `${grepDateCmd} ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | sort | uniq -c | sort -nr | head -n 10`;
-    // 9. Top Recipient Domains with Errors
-    const topRecipientDomainsCmd = `${grepDateCmd} ${logFile} | grep -E "status=bounced|status=deferred" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
-    // 10. Top Domains Reporting Spam
-    const topSpamDomainsCmd = `${grepDateCmd} ${logFile} | grep -i "spam" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort | uniq -c | sort -nr | head -n 10`;
-    // 11. Domain Not Found (Blocked Candidates) - Unique count
-    const domainNotFoundCmd = `${grepDateCmd} ${logFile} | grep -i "domain not found" | grep -oP 'to=<\\K[^>]+' | awk -F@ '{print $2}' | sort -u | awk '{print "1 "$1}' | head -n 20`;
-
-    // Execute simple counts
+    // Run parallel database queries
     const [
-      totalBounces,
-      gmailBounces,
-      outlookBounces,
-      yahooBounces,
-      totalSent,
-      totalDeferred,
-      activeQueue,
-      totalInvalid
-    ] = await Promise.all([
-      runCommand(totalBouncesCmd),
-      runCommand(gmailBouncesCmd),
-      runCommand(outlookBouncesCmd),
-      runCommand(yahooBouncesCmd),
-      runCommand(totalSentCmd),
-      runCommand(totalDeferredCmd),
-      runCommand(activeQueueCmd),
-      runCommand(totalInvalidCmd)
-    ]);
-
-    // Execute complex queries
-    const [
+      [{ c: totalBounces }],
+      [{ c: totalSent }],
+      [{ c: totalDeferred }],
+      [{ c: totalInvalid }],
+      [{ c: gmailBounces }],
+      [{ c: outlookBounces }],
+      [{ c: yahooBounces }],
       topSenderGmailOutput,
       topSenderOutlookOutput,
       topSenderYahooOutput,
@@ -129,68 +82,72 @@ app.get('/api/stats', async (req, res) => {
       topRecipientDomainsOutput,
       topSpamDomainsOutput,
       domainNotFoundOutput,
-      historicalDataOutput
+      historicalDataRaw
     ] = await Promise.all([
-      runCommand(topSenderGmailCmd),
-      runCommand(topSenderOutlookCmd),
-      runCommand(topSenderYahooCmd),
-      runCommand(topRecipientEmailsCmd),
-      runCommand(topRecipientDomainsCmd),
-      runCommand(topSpamDomainsCmd),
-      runCommand(domainNotFoundCmd),
-      runCommand(historicalDataCmd)
+      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='sent' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='deferred' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT recipient) as c FROM deliveries WHERE is_invalid=1 AND ${dateClause}`),
+      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
+      
+      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE is_spam=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT domain, COUNT(DISTINCT recipient) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 20`),
+      
+      runQuery(`SELECT date(date) as day, status, COUNT(*) as c FROM deliveries WHERE ${dateClause} GROUP BY day, status`)
     ]);
 
     // Parse historical data
     const graphMap = {};
-    historicalDataOutput.split('\n').filter(Boolean).forEach(line => {
-      const parts = line.trim().match(/^(\d+)\s+([A-Za-z]{3}\s+\d+)\s+status=(.+)$/);
-      if (parts) {
-        const count = parseInt(parts[1], 10);
-        const date = parts[2].replace(/\s+/g, ' '); // normalize "Jul  3" -> "Jul 3"
-        const status = parts[3];
-        
-        if (!graphMap[date]) {
-          graphMap[date] = { date, sent: 0, bounces: 0, deferred: 0, gmail: 0, yahoo: 0, outlook: 0, invalid: 0, spam: 0 };
-        }
-        
-        if (status === 'sent') graphMap[date].sent += count;
-        if (status === 'bounced') {
-          graphMap[date].bounces += count;
-          // Approximate metrics for domains from overall bounces for historical visualization
-          graphMap[date].gmail += Math.floor(count * 0.4);
-          graphMap[date].yahoo += Math.floor(count * 0.2);
-          graphMap[date].outlook += Math.floor(count * 0.1);
-          graphMap[date].invalid += Math.floor(count * 0.1);
-        }
-        if (status === 'deferred') graphMap[date].deferred += count;
+    historicalDataRaw.forEach(row => {
+      // Re-format YYYY-MM-DD back to "Jul 3" for UI consistency
+      const d = new Date(row.day);
+      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      if (!graphMap[dateStr]) {
+        graphMap[dateStr] = { date: dateStr, sent: 0, bounces: 0, deferred: 0, gmail: 0, yahoo: 0, outlook: 0, invalid: 0, spam: 0 };
       }
+      
+      if (row.status === 'sent') graphMap[dateStr].sent += row.c;
+      if (row.status === 'bounced') {
+        graphMap[dateStr].bounces += row.c;
+        graphMap[dateStr].gmail += Math.floor(row.c * 0.4);
+        graphMap[dateStr].yahoo += Math.floor(row.c * 0.2);
+        graphMap[dateStr].outlook += Math.floor(row.c * 0.1);
+        graphMap[dateStr].invalid += Math.floor(row.c * 0.1);
+      }
+      if (row.status === 'deferred') graphMap[dateStr].deferred += row.c;
     });
     
-    // Convert map to array and sort by date chronologically
     const historicalData = Object.values(graphMap).sort((a, b) => {
-      // Assuming current year since postfix logs (Jul 3) don't have year
       const year = new Date().getFullYear();
       return new Date(`${a.date} ${year}`) - new Date(`${b.date} ${year}`);
     });
 
     res.json({
-      totalBounces: parseInt(totalBounces) || 0,
-      gmailBounces: parseInt(gmailBounces) || 0,
-      outlookBounces: parseInt(outlookBounces) || 0,
-      yahooBounces: parseInt(yahooBounces) || 0,
-      totalSent: parseInt(totalSent) || 0,
-      totalDelivered: (parseInt(totalSent) || 0) - (parseInt(totalBounces) || 0),
-      totalDeferred: parseInt(totalDeferred) || 0,
-      activeQueue: parseInt(activeQueue) || 0,
-      totalInvalid: parseInt(totalInvalid) || 0,
-      topBouncedDomainsGmail: parseCountLines(topSenderGmailOutput, 'domain'),
-      topBouncedDomainsOutlook: parseCountLines(topSenderOutlookOutput, 'domain'),
-      topBouncedDomainsYahoo: parseCountLines(topSenderYahooOutput, 'domain'),
-      topRecipientEmailsError: parseCountLines(topRecipientEmailsOutput, 'email'),
-      topRecipientDomainsError: parseCountLines(topRecipientDomainsOutput, 'domain'),
-      topSpamDomains: parseCountLines(topSpamDomainsOutput, 'domain'),
-      blockedDomains: parseCountLines(domainNotFoundOutput, 'domain'),
+      totalBounces: totalBounces || 0,
+      gmailBounces: gmailBounces || 0,
+      outlookBounces: outlookBounces || 0,
+      yahooBounces: yahooBounces || 0,
+      totalSent: totalSent || 0,
+      totalDelivered: (totalSent || 0) - (totalBounces || 0),
+      totalDeferred: totalDeferred || 0,
+      activeQueue: activeQueue || 0,
+      totalInvalid: totalInvalid || 0,
+      topBouncedDomainsGmail: topSenderGmailOutput,
+      topBouncedDomainsOutlook: topSenderOutlookOutput,
+      topBouncedDomainsYahoo: topSenderYahooOutput,
+      topRecipientEmailsError: topRecipientEmailsOutput,
+      topRecipientDomainsError: topRecipientDomainsOutput,
+      topSpamDomains: topSpamDomainsOutput,
+      blockedDomains: domainNotFoundOutput,
       historicalData: historicalData
     });
 
@@ -213,75 +170,43 @@ app.get('/api/logs', async (req, res) => {
 
   try {
     const { type, search, range } = req.query;
-    const logFile = `/var/log/mail.log`;
     
-    let grepPattern = '';
-    if (type === 'sent') grepPattern = 'status=sent';
-    else if (type === 'bounces') grepPattern = 'status=bounced';
-    else if (type === 'deferred') grepPattern = 'status=deferred';
-    else if (type === 'spam') grepPattern = 'spam';
-    else if (type === 'invalid') grepPattern = 'user unknown|recipient address rejected|not found|no route';
-    else if (type === 'gmail') grepPattern = 'status=bounced.*gmail';
-    else if (type === 'outlook') grepPattern = 'status=bounced.*(outlook|hotmail)';
-    else if (type === 'yahoo') grepPattern = 'status=bounced.*(yahoo|ymail)';
-    else grepPattern = 'postfix';
+    let dateClause = '';
+    const todayPrefix = new Date().toISOString().slice(0, 10);
+    if (!range || range === 'today') dateClause = `date LIKE '${todayPrefix}%'`;
+    else if (range === 'all') dateClause = `1=1`;
+    else dateClause = `date LIKE '${todayPrefix}%'`;
 
-    const safeGrep = grepPattern.replace(/["$\`\\]/g, '');
-    const safeSearch = search ? search.replace(/["$\`\\]/g, '') : '';
-    const searchCmd = safeSearch ? `| grep -i "${safeSearch}"` : '';
+    let whereClause = dateClause;
 
-    let grepDateCmd = '';
-    if (!range || range === 'today') {
-      const dateStr = `$(date +'%b %e')`;
-      grepDateCmd = `grep "${dateStr}" ${logFile} | `;
-    } else {
-      grepDateCmd = `cat ${logFile} | `;
+    if (type === 'sent') whereClause += ` AND status='sent'`;
+    else if (type === 'bounces') whereClause += ` AND status='bounced'`;
+    else if (type === 'deferred') whereClause += ` AND status='deferred'`;
+    else if (type === 'spam') whereClause += ` AND is_spam=1`;
+    else if (type === 'invalid') whereClause += ` AND is_invalid=1`;
+    else if (type === 'gmail') whereClause += ` AND status='bounced' AND domain='gmail.com'`;
+    else if (type === 'outlook') whereClause += ` AND status='bounced' AND domain IN ('outlook.com', 'hotmail.com')`;
+    else if (type === 'yahoo') whereClause += ` AND status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com')`;
+
+    if (search) {
+      // Safe parameterized search in SQLite
+      whereClause += ` AND recipient LIKE ?`;
     }
 
-    const cmd = `${grepDateCmd} grep -iE "${safeGrep}" ${searchCmd} | tail -n 200 | sort -r`;
-    const rawOutput = await runCommand(cmd);
-
-    const logs = rawOutput.split('\n').filter(Boolean).map(line => {
-      const match = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*to=<([^>]+)>.*status=([^ ]+)\s+\((.*)\)/i);
-      if (match) {
-        return { date: match[1], email: match[2], status: match[3], reason: match[4] };
-      }
-      
-      // Secondary fallback regex if the standard one fails
-      const backupMatch = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*status=([^ ]+)\s+\((.*)\)/i);
-      if (backupMatch) {
-        const emailMatch = line.match(/to=<([^>]+)>/i);
-        return { 
-          date: backupMatch[1], 
-          email: emailMatch ? emailMatch[1] : 'Unknown', 
-          status: backupMatch[2], 
-          reason: backupMatch[3] 
-        };
-      }
-
-      // Third fallback: NOQUEUE invalid emails
-      const noQueueMatch = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*NOQUEUE: reject:.*?:\s*(.*?)(?:;?\s*from=.*to=<([^>]+)>)/i);
-      if (noQueueMatch) {
-        return { 
-          date: noQueueMatch[1], 
-          email: noQueueMatch[3], 
-          status: type || 'invalid', 
-          reason: noQueueMatch[2]
-        };
-      }
-
-      // Final fallback if everything fails, but only take the reason part
-      const statusIdx = line.indexOf('status=');
-      let reasonStr = statusIdx > -1 ? line.substring(statusIdx) : line;
-      
-      // Try to find email anyway
-      const anyEmailMatch = line.match(/to=<([^>]+)>/i);
-      
-      return { 
-        date: line.substring(0, 15), 
-        email: anyEmailMatch ? anyEmailMatch[1] : 'Unknown', 
-        status: type || 'unknown', 
-        reason: reasonStr 
+    const query = `SELECT date, recipient as email, status, reason FROM deliveries WHERE ${whereClause} ORDER BY date DESC LIMIT 200`;
+    const params = search ? [`%${search}%`] : [];
+    
+    const rows = await runQuery(query, params);
+    
+    const logs = rows.map(row => {
+      // Reformat YYYY-MM-DD HH:MM:SS back to Jul 3 10:00:00 for UI consistency
+      const d = new Date(row.date);
+      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toTimeString().split(' ')[0];
+      return {
+        date: dateStr,
+        email: row.email,
+        status: row.status,
+        reason: row.reason
       };
     });
 
