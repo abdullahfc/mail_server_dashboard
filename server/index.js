@@ -245,8 +245,16 @@ app.get(/(.*)/, (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Backend API Server is LIVE!`);
   console.log(`Listening on all network interfaces (Port ${PORT})`);
   console.log(`Access the dashboard via your server's public IP address in your browser.`);
+  
+  if (isLinux) {
+    try {
+      await startParser();
+    } catch (e) {
+      console.error("Failed to start parser:", e);
+    }
+  }
 });
