@@ -159,16 +159,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           onGraphClick={handleGraphClick}
           delay="delay-4"
         />
-        <StatCard 
-          title="Total Invalid" 
-          value={stats.totalInvalid} 
-          percentage={calcPercentage(stats.totalInvalid)}
-          icon={<XCircle size={24} />} 
-          colorClass="icon-red"
-          type="invalid"
-          onGraphClick={handleGraphClick}
-          delay="delay-4"
-        />
+
       </div>
 
       <div className="glass-panel chart-container fade-in delay-3">

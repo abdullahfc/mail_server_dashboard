@@ -96,8 +96,8 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       
-      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 10`),
-      runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT sender as email, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE is_spam=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT domain, COUNT(DISTINCT recipient) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 20`),
       
@@ -191,6 +191,45 @@ app.get('/api/logs', async (req, res) => {
     if (search) {
       // Safe parameterized search in SQLite
       whereClause += ` AND recipient LIKE ?`;
+    }
+
+    if (type === 'queue') {
+      const rawQueue = await runCommand('mailq');
+      const logs = [];
+      let currentLog = null;
+      
+      if (!rawQueue || rawQueue.includes('Mail queue is empty')) {
+        return res.json({ logs: [] });
+      }
+
+      rawQueue.split('\n').forEach(line => {
+        if (line.match(/^[A-F0-9]/i)) {
+          if (currentLog) logs.push(currentLog);
+          const parts = line.trim().split(/\s+/);
+          // Queue ID (0), Size (1), DayOfWeek (2), Month (3), Day (4), Time (5), Sender (6)
+          const dateStr = parts.slice(3, 6).join(' ');
+          currentLog = {
+            date: dateStr,
+            email: 'Loading...',
+            status: 'queue',
+            reason: 'Message is currently in the active queue'
+          };
+        } else if (line.match(/^\s+(.*@.*)/)) {
+          if (currentLog) currentLog.email = line.trim();
+        } else if (line.match(/^\s+\((.*)\)/)) {
+          if (currentLog) currentLog.reason = line.trim().replace(/^\(|\)$/g, '');
+        }
+      });
+      if (currentLog) logs.push(currentLog);
+
+      // Search filter for queue
+      let filteredLogs = logs;
+      if (search) {
+        const lowerSearch = search.toLowerCase();
+        filteredLogs = logs.filter(l => l.email.toLowerCase().includes(lowerSearch) || l.reason.toLowerCase().includes(lowerSearch));
+      }
+
+      return res.json({ logs: filteredLogs });
     }
 
     const query = `SELECT date, recipient as email, status, reason FROM deliveries WHERE ${whereClause} ORDER BY date DESC LIMIT 200`;
