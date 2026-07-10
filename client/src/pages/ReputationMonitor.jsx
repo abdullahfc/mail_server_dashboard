@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Shield, ShieldAlert, ShieldCheck, Server } from 'lucide-react';
+import { Activity, Shield, ShieldAlert, ShieldCheck, Server, XCircle, CheckCircle } from 'lucide-react';
 
 const ReputationMonitor = () => {
   const [data, setData] = useState(null);

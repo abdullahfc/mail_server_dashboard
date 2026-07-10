@@ -321,17 +321,23 @@ app.get('/api/reputation', async (req, res) => {
 app.get('/api/domain-health', async (req, res) => {
   const dns = require('dns').promises;
   try {
-    // Get top 5 sender domains to check
-    const rows = await runQuery(`
-      SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as c 
-      FROM deliveries 
-      WHERE sender != '' 
-      GROUP BY domain 
-      ORDER BY c DESC 
-      LIMIT 5
-    `);
+    const { domain } = req.query;
+    let domains = [];
     
-    const domains = rows.map(r => r.domain).filter(d => d.includes('.'));
+    if (domain) {
+      domains = [domain];
+    } else {
+      // Get top 5 sender domains to check
+      const rows = await runQuery(`
+        SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as c 
+        FROM deliveries 
+        WHERE sender != '' AND sender NOT LIKE '%unknown%' AND sender LIKE '%@%'
+        GROUP BY domain 
+        ORDER BY c DESC 
+        LIMIT 5
+      `);
+      domains = rows.map(r => r.domain).filter(d => d.includes('.'));
+    }
     
     const healthResults = await Promise.all(domains.map(async (domain) => {
       let spf = { valid: false, record: '' };

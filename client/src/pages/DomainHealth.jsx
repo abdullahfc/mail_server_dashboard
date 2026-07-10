@@ -5,28 +5,44 @@ const DomainHealth = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [customDomain, setCustomDomain] = useState('');
+
+  const fetchHealth = async (queryDomain = '') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const apiUrl = import.meta.env.DEV 
+        ? `http://localhost:3001/api/domain-health${queryDomain ? `?domain=${encodeURIComponent(queryDomain)}` : ''}` 
+        : `/api/domain-health${queryDomain ? `?domain=${encodeURIComponent(queryDomain)}` : ''}`;
+        
+      const res = await fetch(apiUrl);
+      if (!res.ok) throw new Error('Failed to fetch domain health');
+      
+      const json = await res.json();
+      
+      if (queryDomain) {
+        // Append to existing data or replace
+        setData(json.health || []);
+      } else {
+        setData(json.health || []);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const apiUrl = import.meta.env.DEV 
-          ? `http://localhost:3001/api/domain-health` 
-          : `/api/domain-health`;
-          
-        const res = await fetch(apiUrl);
-        if (!res.ok) throw new Error('Failed to fetch domain health');
-        
-        const json = await res.json();
-        setData(json.health || []);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchHealth();
   }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (customDomain.trim()) {
+      fetchHealth(customDomain.trim());
+    }
+  };
 
   if (loading) {
     return (
@@ -43,6 +59,7 @@ const DomainHealth = () => {
       <div className="glass-panel" style={{ color: '#ef4444' }}>
         <h2>Domain Authentication Scan Failed</h2>
         <p>{error}</p>
+        <button onClick={() => fetchHealth()} style={{ marginTop: '16px', padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Try Again</button>
       </div>
     );
   }
@@ -51,9 +68,21 @@ const DomainHealth = () => {
     <div className="fade-in">
       <div className="glass-panel" style={{ marginBottom: '24px' }}>
         <h2>Domain Authentication Health</h2>
-        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 0 }}>
+        <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '16px' }}>
           This tool automatically scans your top sending domains to verify that their SPF and DMARC DNS records are correctly published. Missing or invalid records will cause emails to go to the spam folder.
         </p>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '12px', maxWidth: '500px' }}>
+          <input 
+            type="text" 
+            value={customDomain}
+            onChange={(e) => setCustomDomain(e.target.value)}
+            placeholder="Check a specific domain (e.g. your-company.com)" 
+            style={{ flex: 1, padding: '10px 16px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', outline: 'none' }}
+          />
+          <button type="submit" style={{ padding: '0 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            Verify Domain
+          </button>
+        </form>
       </div>
 
       <div style={{ display: 'grid', gap: '16px' }}>
