@@ -283,12 +283,25 @@ app.get('/api/trace', async (req, res) => {
   }
 });
 
-// GET /api/reputation?ip=server_ip
+// GET /api/reputation
 app.get('/api/reputation', async (req, res) => {
   const dns = require('dns').promises;
+  const https = require('https');
   try {
-    const { ip } = req.query;
-    if (!ip) return res.status(400).json({ error: 'IP required' });
+    let { ip } = req.query;
+    
+    if (!ip) {
+      // Auto-detect server's public IP
+      ip = await new Promise((resolve, reject) => {
+        https.get('https://api.ipify.org', (response) => {
+          let data = '';
+          response.on('data', chunk => data += chunk);
+          response.on('end', () => resolve(data));
+        }).on('error', reject);
+      });
+    }
+
+    if (!ip) return res.status(400).json({ error: 'Could not detect IP' });
 
     // Reverse IP for DNSBL query
     const reversedIp = ip.split('.').reverse().join('.');

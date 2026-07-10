@@ -9,12 +9,9 @@ const ReputationMonitor = () => {
   useEffect(() => {
     const fetchReputation = async () => {
       try {
-        // Hardcoded for now based on user's known IP
-        const serverIp = '69.197.168.185';
-        
         const apiUrl = import.meta.env.DEV 
-          ? `http://localhost:3001/api/reputation?ip=${serverIp}` 
-          : `/api/reputation?ip=${serverIp}`;
+          ? `http://localhost:3001/api/reputation` 
+          : `/api/reputation`;
           
         const res = await fetch(apiUrl);
         if (!res.ok) throw new Error('Failed to fetch reputation data');
