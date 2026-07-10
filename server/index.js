@@ -321,7 +321,15 @@ app.get('/api/reputation', async (req, res) => {
         if (err.code === 'ENOTFOUND') {
           return { name: bl.name, listed: false };
         }
-        return { name: bl.name, listed: false, error: err.message };
+        
+        let friendlyError = err.message;
+        if (err.code === 'SERVFAIL' || err.code === 'ESERVFAIL' || err.code === 'EREFUSED' || err.code === 'REFUSED') {
+           friendlyError = 'Query blocked by Public DNS. Requires a private DNS resolver.';
+        } else if (err.code === 'ETIMEOUT') {
+           friendlyError = 'Connection timed out.';
+        }
+        
+        return { name: bl.name, listed: false, error: friendlyError };
       }
     }));
 
