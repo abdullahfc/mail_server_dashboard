@@ -208,7 +208,9 @@ app.get('/api/logs', async (req, res) => {
           const parts = line.trim().split(/\s+/);
           // Queue ID (0), Size (1), DayOfWeek (2), Month (3), Day (4), Time (5), Sender (6)
           const dateStr = parts.slice(3, 6).join(' ');
+          const queueId = parts[0].replace('*', '');
           currentLog = {
+            queue_id: queueId,
             date: dateStr,
             email: 'Loading...',
             status: 'queue',
@@ -232,7 +234,7 @@ app.get('/api/logs', async (req, res) => {
       return res.json({ logs: filteredLogs });
     }
 
-    const query = `SELECT date, recipient as email, status, reason FROM deliveries WHERE ${whereClause} ORDER BY date DESC LIMIT 200`;
+    const query = `SELECT date, queue_id, recipient as email, status, reason FROM deliveries WHERE ${whereClause} ORDER BY date DESC LIMIT 200`;
     const params = search ? [`%${search}%`] : [];
     
     const rows = await runQuery(query, params);
@@ -242,6 +244,7 @@ app.get('/api/logs', async (req, res) => {
       const d = new Date(row.date);
       const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toTimeString().split(' ')[0];
       return {
+        queue_id: row.queue_id,
         date: dateStr,
         email: row.email,
         status: row.status,

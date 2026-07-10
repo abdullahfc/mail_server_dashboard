@@ -121,14 +121,16 @@ const LogsView = () => {
             <table className="data-table" style={{ width: '100%', minWidth: '800px' }}>
               <thead>
                 <tr>
+                  <th style={{ width: '15%' }}>QUEUE ID</th>
                   <th style={{ width: '25%' }}>EMAIL</th>
                   <th style={{ width: '20%' }}>DATE</th>
-                  <th style={{ width: '55%' }}>REASON</th>
+                  <th style={{ width: '40%' }}>REASON</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log, index) => (
                   <tr key={index}>
+                    <td style={{ fontFamily: 'monospace', color: '#94a3b8' }}>{log.queue_id || '-'}</td>
                     <td style={{ color: '#60a5fa', fontWeight: '500' }}>{log.email}</td>
                     <td style={{ color: 'rgba(255,255,255,0.7)' }}>{log.date}</td>
                     <td style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', wordBreak: 'break-word' }}>
