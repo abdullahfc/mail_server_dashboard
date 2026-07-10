@@ -84,13 +84,13 @@ app.get('/api/stats', async (req, res) => {
       domainNotFoundOutput,
       historicalDataRaw
     ] = await Promise.all([
-      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='sent' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='deferred' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='sent' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT recipient) as c FROM deliveries WHERE is_invalid=1 AND ${dateClause}`),
-      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(*) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
       
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
@@ -101,7 +101,7 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE is_spam=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT domain, COUNT(DISTINCT recipient) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 20`),
       
-      runQuery(`SELECT date(date) as day, status, COUNT(*) as c FROM deliveries WHERE ${dateClause} GROUP BY day, status`)
+      runQuery(`SELECT date(date) as day, status, COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE ${dateClause} GROUP BY day, status`)
     ]);
 
     // Parse historical data
