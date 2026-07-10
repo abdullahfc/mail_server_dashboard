@@ -256,6 +256,115 @@ app.get('/api/logs', async (req, res) => {
   }
 });
 
+// GET /api/trace?query=email_or_queue_id
+app.get('/api/trace', async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) return res.json({ logs: [] });
+    
+    let sqlQuery = `SELECT * FROM deliveries WHERE queue_id = ? OR recipient = ? OR sender = ? ORDER BY date DESC LIMIT 100`;
+    const params = [query, query, query];
+    
+    // If it looks like a partial search, use LIKE
+    if (query.includes('@') && !query.includes('.')) {
+       sqlQuery = `SELECT * FROM deliveries WHERE recipient LIKE ? OR sender LIKE ? ORDER BY date DESC LIMIT 100`;
+       params.length = 0;
+       params.push(`%${query}%`, `%${query}%`);
+    }
+
+    const rows = await runQuery(sqlQuery, params);
+    res.json({ logs: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to trace message' });
+  }
+});
+
+// GET /api/reputation?ip=server_ip
+app.get('/api/reputation', async (req, res) => {
+  const dns = require('dns').promises;
+  try {
+    const { ip } = req.query;
+    if (!ip) return res.status(400).json({ error: 'IP required' });
+
+    // Reverse IP for DNSBL query
+    const reversedIp = ip.split('.').reverse().join('.');
+    
+    const blacklists = [
+      { name: 'Spamhaus', domain: 'zen.spamhaus.org' },
+      { name: 'Barracuda', domain: 'b.barracudacentral.org' },
+      { name: 'Sorbs', domain: 'dnsbl.sorbs.net' },
+      { name: 'SpamCop', domain: 'bl.spamcop.net' }
+    ];
+
+    const results = await Promise.all(blacklists.map(async (bl) => {
+      try {
+        const addresses = await dns.resolve4(`${reversedIp}.${bl.domain}`);
+        return { name: bl.name, listed: true, details: addresses };
+      } catch (err) {
+        if (err.code === 'ENOTFOUND') {
+          return { name: bl.name, listed: false };
+        }
+        return { name: bl.name, listed: false, error: err.message };
+      }
+    }));
+
+    const isListed = results.some(r => r.listed);
+    res.json({ ip, listed: isListed, blacklists: results });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to check reputation' });
+  }
+});
+
+// GET /api/domain-health
+app.get('/api/domain-health', async (req, res) => {
+  const dns = require('dns').promises;
+  try {
+    // Get top 5 sender domains to check
+    const rows = await runQuery(`
+      SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as c 
+      FROM deliveries 
+      WHERE sender != '' 
+      GROUP BY domain 
+      ORDER BY c DESC 
+      LIMIT 5
+    `);
+    
+    const domains = rows.map(r => r.domain).filter(d => d.includes('.'));
+    
+    const healthResults = await Promise.all(domains.map(async (domain) => {
+      let spf = { valid: false, record: '' };
+      let dmarc = { valid: false, record: '' };
+      
+      // Check SPF
+      try {
+        const txtRecords = await dns.resolveTxt(domain);
+        const spfRecord = txtRecords.flat().find(r => r.startsWith('v=spf1'));
+        if (spfRecord) {
+          spf = { valid: true, record: spfRecord };
+        }
+      } catch (err) { /* ignore */ }
+      
+      // Check DMARC
+      try {
+        const txtRecords = await dns.resolveTxt(`_dmarc.${domain}`);
+        const dmarcRecord = txtRecords.flat().find(r => r.startsWith('v=DMARC1'));
+        if (dmarcRecord) {
+          dmarc = { valid: true, record: dmarcRecord };
+        }
+      } catch (err) { /* ignore */ }
+
+      return { domain, spf, dmarc };
+    }));
+
+    res.json({ health: healthResults });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to check domain health' });
+  }
+});
+
 
 
 // Serve static frontend files from the client/dist folder

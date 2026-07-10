@@ -5,6 +5,9 @@ import './index.css';
 
 import DashboardHome from './pages/DashboardHome';
 import LogsView from './pages/LogsView';
+import MessageTrace from './pages/MessageTrace';
+import ReputationMonitor from './pages/ReputationMonitor';
+import DomainHealth from './pages/DomainHealth';
 
 function App() {
   const [stats, setStats] = useState(null);
@@ -61,7 +64,7 @@ function App() {
   return (
     <Router>
       <div className="dashboard-container">
-        <header className="header">
+        <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1>ISPConfig Mail Dashboard PRO</h1>
             <p>Real-time analytics and email log monitoring</p>
@@ -72,9 +75,20 @@ function App() {
           </div>
         </header>
 
+        <nav style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
+          <a href="/" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Dashboard</a>
+          <a href="/trace" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/trace' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Message Trace</a>
+          <a href="/reputation" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/reputation' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Reputation Health</a>
+          <a href="/domain-health" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/domain-health' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Domain Auth</a>
+        </nav>
+
         <Routes>
           <Route path="/" element={<DashboardHome stats={stats} timeRange={timeRange} setTimeRange={setTimeRange} />} />
           <Route path="/logs/:type" element={<LogsView />} />
+          {/* Phase 2 Routes */}
+          <Route path="/trace" element={<MessageTrace />} />
+          <Route path="/reputation" element={<ReputationMonitor />} />
+          <Route path="/domain-health" element={<DomainHealth />} />
         </Routes>
       </div>
     </Router>
