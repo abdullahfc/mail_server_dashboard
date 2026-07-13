@@ -68,9 +68,8 @@ app.get('/api/stats', async (req, res) => {
 
     // Run parallel database queries
     const [
-      [{ c: totalBounces }],
+      [{ c: totalErrors }],
       [{ c: totalSent }],
-      [{ c: totalDeferred }],
       [{ c: totalInvalid }],
       [{ c: gmailBounces }],
       [{ c: outlookBounces }],
@@ -84,13 +83,12 @@ app.get('/api/stats', async (req, res) => {
       domainNotFoundOutput,
       historicalDataRaw
     ] = await Promise.all([
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='sent' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT recipient) as c FROM deliveries WHERE is_invalid=1 AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain='gmail.com' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
       
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
@@ -116,14 +114,13 @@ app.get('/api/stats', async (req, res) => {
       }
       
       if (row.status === 'sent') graphMap[dateStr].sent += row.c;
-      if (row.status === 'bounced') {
+      if (row.status === 'bounced' || row.status === 'deferred') {
         graphMap[dateStr].bounces += row.c;
         graphMap[dateStr].gmail += Math.floor(row.c * 0.4);
         graphMap[dateStr].yahoo += Math.floor(row.c * 0.2);
         graphMap[dateStr].outlook += Math.floor(row.c * 0.1);
         graphMap[dateStr].invalid += Math.floor(row.c * 0.1);
       }
-      if (row.status === 'deferred') graphMap[dateStr].deferred += row.c;
     });
     
     const historicalData = Object.values(graphMap).sort((a, b) => {
@@ -132,13 +129,12 @@ app.get('/api/stats', async (req, res) => {
     });
 
     res.json({
-      totalBounces: totalBounces || 0,
+      totalErrors: totalErrors || 0,
       gmailBounces: gmailBounces || 0,
       outlookBounces: outlookBounces || 0,
       yahooBounces: yahooBounces || 0,
       totalSent: totalSent || 0,
-      totalDelivered: (totalSent || 0) - (totalBounces || 0),
-      totalDeferred: totalDeferred || 0,
+      totalDelivered: (totalSent || 0) - (totalErrors || 0),
       activeQueue: activeQueue || 0,
       totalInvalid: totalInvalid || 0,
       topBouncedDomainsGmail: topSenderGmailOutput,
@@ -180,13 +176,12 @@ app.get('/api/logs', async (req, res) => {
     let whereClause = dateClause;
 
     if (type === 'sent') whereClause += ` AND status='sent'`;
-    else if (type === 'bounces') whereClause += ` AND status='bounced'`;
-    else if (type === 'deferred') whereClause += ` AND status='deferred'`;
+    else if (type === 'errors') whereClause += ` AND status IN ('bounced', 'deferred')`;
     else if (type === 'spam') whereClause += ` AND is_spam=1`;
     else if (type === 'invalid') whereClause += ` AND is_invalid=1`;
-    else if (type === 'gmail') whereClause += ` AND status='bounced' AND domain='gmail.com'`;
-    else if (type === 'outlook') whereClause += ` AND status='bounced' AND domain IN ('outlook.com', 'hotmail.com')`;
-    else if (type === 'yahoo') whereClause += ` AND status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com')`;
+    else if (type === 'gmail') whereClause += ` AND status IN ('bounced', 'deferred') AND domain='gmail.com'`;
+    else if (type === 'outlook') whereClause += ` AND status IN ('bounced', 'deferred') AND domain IN ('outlook.com', 'hotmail.com')`;
+    else if (type === 'yahoo') whereClause += ` AND status IN ('bounced', 'deferred') AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com')`;
 
     if (search) {
       // Safe parameterized search in SQLite

@@ -89,25 +89,16 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay=""
         />
         <StatCard 
-          title="Total Bounces" 
-          value={stats.totalBounces} 
-          percentage={calcPercentage(stats.totalBounces)}
+          title="Total Bounces/Deferred" 
+          value={stats.totalErrors} 
+          percentage={calcPercentage(stats.totalErrors)}
           icon={<AlertCircle size={24} />} 
           colorClass="icon-red"
-          type="bounces"
+          type="errors"
           onGraphClick={handleGraphClick}
           delay="delay-1"
         />
-        <StatCard 
-          title="Total Deferred" 
-          value={stats.totalDeferred} 
-          percentage={calcPercentage(stats.totalDeferred)}
-          icon={<Clock size={24} />} 
-          colorClass="icon-yellow"
-          type="deferred"
-          onGraphClick={handleGraphClick}
-          delay="delay-2"
-        />
+
         <StatCard 
           title="Active Queue" 
           value={stats.activeQueue} 
@@ -120,7 +111,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginTop: '24px' }}>
         <StatCard 
-          title="Gmail Bounces" 
+          title="Gmail Errors" 
           value={stats.gmailBounces} 
           percentage={calcPercentage(stats.gmailBounces)}
           icon={<Mail size={24} />} 
@@ -130,7 +121,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-3"
         />
         <StatCard 
-          title="Yahoo Bounces" 
+          title="Yahoo Errors" 
           value={stats.yahooBounces} 
           percentage={calcPercentage(stats.yahooBounces)}
           icon={<Mail size={24} />} 
@@ -140,7 +131,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-3"
         />
         <StatCard 
-          title="Outlook Bounces" 
+          title="Outlook Errors" 
           value={stats.outlookBounces} 
           percentage={calcPercentage(stats.outlookBounces)}
           icon={<Mail size={24} />} 
