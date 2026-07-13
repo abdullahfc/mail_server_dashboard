@@ -248,7 +248,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
 
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
         <DataTable title="Top Domains Reporting Spam" data={stats.topSpamDomains} valueKey="domain" delay="delay-5" />
-        <DataTable title="Blocked / Domain Not Found" data={stats.blockedDomains} valueKey="domain" delay="delay-5" />
+        <DataTable title="Domains with Invalid Recipients" data={stats.blockedDomains} valueKey="domain" delay="delay-5" />
       </div>
     </>
   );
