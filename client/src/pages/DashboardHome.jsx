@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Send, AlertCircle, Clock, Mail, MailX, CheckCircle, XCircle, Database
+  Send, AlertCircle, Clock, Mail, MailX, CheckCircle, XCircle, Database, ShieldAlert
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -160,8 +160,32 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           onGraphClick={handleGraphClick}
           delay="delay-4"
         />
-
       </div>
+
+      <h2 style={{ marginTop: '32px' }}>Advanced SPAM Monitoring</h2>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginTop: '16px' }}>
+        <StatCard 
+          title="Domains Marking Us As SPAM" 
+          value={stats.outgoingSpamBounces} 
+          percentage={calcPercentage(stats.outgoingSpamBounces)}
+          icon={<ShieldAlert size={24} />} 
+          colorClass="icon-red"
+          type="outgoing_spam"
+          onGraphClick={handleGraphClick}
+          delay="delay-1"
+        />
+        <StatCard 
+          title="Incoming SPAM Blocked" 
+          value={stats.incomingSpam} 
+          percentage={calcPercentage(stats.incomingSpam)}
+          icon={<ShieldAlert size={24} />} 
+          colorClass="icon-purple"
+          type="incoming_spam"
+          onGraphClick={handleGraphClick}
+          delay="delay-2"
+        />
+      </div>
+
 
       <div className="glass-panel chart-container fade-in delay-3">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

@@ -56,8 +56,8 @@ const processLine = async (line) => {
       
       const sender = activeQueues.get(queueId) || 'unknown';
 
-      // Advanced Tagging
-      const isSpam = /spam/i.test(reason) ? 1 : 0;
+      // Advanced Tagging (Expanded for Outgoing Bounces)
+      const isSpam = /spam|junk|blocked using|blacklisted|unsolicited|policy|reputation|high probability of spam/i.test(reason) ? 1 : 0;
       const isInvalid = /user unknown|recipient address rejected|not found|no route/i.test(reason) ? 1 : 0;
 
       // Insert into our fast database
@@ -66,7 +66,6 @@ const processLine = async (line) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [formattedDate, queueId, sender, recipient, domain, status, reason, isSpam, isInvalid]);
       
-      // We do not delete from activeQueues immediately because one queue ID can have multiple recipients!
       return;
     }
     
@@ -81,13 +80,46 @@ const processLine = async (line) => {
         
         const domainMatch = recipient.match(/@(.*)$/);
         const domain = domainMatch ? domainMatch[1] : 'unknown';
-        const isSpam = /spam/i.test(reason) ? 1 : 0;
+        const isSpam = /spam|junk|blocked using|blacklisted|unsolicited|policy|reputation/i.test(reason) ? 1 : 0;
         const isInvalid = /user unknown|recipient address rejected|not found|no route/i.test(reason) ? 1 : 0;
 
         await runInsert(`
           INSERT INTO deliveries (date, queue_id, sender, recipient, domain, status, reason, is_spam, is_invalid)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [formattedDate, 'NOQUEUE', 'unknown', recipient, domain, status, reason, isSpam, isInvalid]);
+      }
+    }
+
+    // 4. Capture INCOMING SPAM (Rspamd Milter Reject)
+    if (line.includes('milter-reject:') && line.includes('Spam message rejected')) {
+      const milterMatch = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*from=<([^>]+)> to=<([^>]+)>/i);
+      if (milterMatch) {
+        const formattedDate = parseLogDate(milterMatch[1]);
+        const sender = milterMatch[2];
+        const recipient = milterMatch[3];
+        const domain = recipient.split('@')[1] || 'unknown';
+        
+        await runInsert(`
+          INSERT INTO deliveries (date, queue_id, sender, recipient, domain, status, reason, is_spam, is_invalid)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [formattedDate, 'INCOMING_SPAM', sender, recipient, domain, 'incoming_spam', 'Rspamd: Spam message rejected', 1, 0]);
+      }
+    }
+
+    // 5. Capture INCOMING SPAM (Amavis Blocked SPAM)
+    if (line.includes('Blocked SPAM')) {
+      const amavisMatch = line.match(/^([A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}).*Blocked SPAM,.*<([^>]+)> -> <([^>]+)>,.*Hits: ([\d.]+)/i);
+      if (amavisMatch) {
+        const formattedDate = parseLogDate(amavisMatch[1]);
+        const sender = amavisMatch[2];
+        const recipient = amavisMatch[3];
+        const score = amavisMatch[4];
+        const domain = recipient.split('@')[1] || 'unknown';
+        
+        await runInsert(`
+          INSERT INTO deliveries (date, queue_id, sender, recipient, domain, status, reason, is_spam, is_invalid)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [formattedDate, 'INCOMING_SPAM', sender, recipient, domain, 'incoming_spam', `Amavis: Spam Score ${score}`, 1, 0]);
       }
     }
 

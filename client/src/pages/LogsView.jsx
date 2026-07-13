@@ -53,6 +53,8 @@ const LogsView = () => {
       other: 'Other Bounced Emails',
       invalid: 'Invalid Recipient Emails',
       spam: 'SPAM Blocked Emails',
+      outgoing_spam: 'Domains Marking Our Emails as SPAM',
+      incoming_spam: 'Incoming SPAM Emails Blocked',
       queue: 'Active Mail Queue'
     };
     return titles[type] || 'Email Logs';

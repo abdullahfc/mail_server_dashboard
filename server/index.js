@@ -75,6 +75,8 @@ app.get('/api/stats', async (req, res) => {
       [{ c: outlookBounces }],
       [{ c: yahooBounces }],
       [{ c: otherBounces }],
+      [{ c: outgoingSpamBounces }],
+      [{ c: incomingSpam }],
       topSenderGmailOutput,
       topSenderOutlookOutput,
       topSenderYahooOutput,
@@ -91,6 +93,10 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      
+      // New SPAM Metrics
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND is_spam=1 AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='incoming_spam' AND is_spam=1 AND ${dateClause}`),
       
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
@@ -140,6 +146,8 @@ app.get('/api/stats', async (req, res) => {
       totalDelivered: (totalSent || 0) - (totalErrors || 0),
       activeQueue: activeQueue || 0,
       totalInvalid: totalInvalid || 0,
+      outgoingSpamBounces: outgoingSpamBounces || 0,
+      incomingSpam: incomingSpam || 0,
       topBouncedDomainsGmail: topSenderGmailOutput,
       topBouncedDomainsOutlook: topSenderOutlookOutput,
       topBouncedDomainsYahoo: topSenderYahooOutput,
@@ -181,6 +189,8 @@ app.get('/api/logs', async (req, res) => {
     if (type === 'sent') whereClause += ` AND status='sent'`;
     else if (type === 'errors') whereClause += ` AND status IN ('bounced', 'deferred')`;
     else if (type === 'spam') whereClause += ` AND is_spam=1`;
+    else if (type === 'outgoing_spam') whereClause += ` AND status='bounced' AND is_spam=1`;
+    else if (type === 'incoming_spam') whereClause += ` AND status='incoming_spam' AND is_spam=1`;
     else if (type === 'invalid') whereClause += ` AND is_invalid=1`;
     else if (type === 'gmail') whereClause += ` AND status='bounced' AND domain='gmail.com'`;
     else if (type === 'outlook') whereClause += ` AND status='bounced' AND domain IN ('outlook.com', 'hotmail.com')`;
