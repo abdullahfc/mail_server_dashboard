@@ -111,7 +111,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginTop: '24px' }}>
         <StatCard 
-          title="Gmail Errors" 
+          title="Gmail Bounces" 
           value={stats.gmailBounces} 
           percentage={calcPercentage(stats.gmailBounces)}
           icon={<Mail size={24} />} 
@@ -121,7 +121,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-3"
         />
         <StatCard 
-          title="Yahoo Errors" 
+          title="Yahoo Bounces" 
           value={stats.yahooBounces} 
           percentage={calcPercentage(stats.yahooBounces)}
           icon={<Mail size={24} />} 
@@ -131,7 +131,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-3"
         />
         <StatCard 
-          title="Outlook Errors" 
+          title="Outlook Bounces" 
           value={stats.outlookBounces} 
           percentage={calcPercentage(stats.outlookBounces)}
           icon={<Mail size={24} />} 
