@@ -74,6 +74,7 @@ app.get('/api/stats', async (req, res) => {
       [{ c: gmailBounces }],
       [{ c: outlookBounces }],
       [{ c: yahooBounces }],
+      [{ c: otherBounces }],
       topSenderGmailOutput,
       topSenderOutlookOutput,
       topSenderYahooOutput,
@@ -89,6 +90,7 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain='gmail.com' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
       
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
@@ -133,6 +135,7 @@ app.get('/api/stats', async (req, res) => {
       gmailBounces: gmailBounces || 0,
       outlookBounces: outlookBounces || 0,
       yahooBounces: yahooBounces || 0,
+      otherBounces: otherBounces || 0,
       totalSent: totalSent || 0,
       totalDelivered: (totalSent || 0) - (totalErrors || 0),
       activeQueue: activeQueue || 0,
@@ -182,6 +185,7 @@ app.get('/api/logs', async (req, res) => {
     else if (type === 'gmail') whereClause += ` AND status IN ('bounced', 'deferred') AND domain='gmail.com'`;
     else if (type === 'outlook') whereClause += ` AND status IN ('bounced', 'deferred') AND domain IN ('outlook.com', 'hotmail.com')`;
     else if (type === 'yahoo') whereClause += ` AND status IN ('bounced', 'deferred') AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com')`;
+    else if (type === 'other') whereClause += ` AND status IN ('bounced', 'deferred') AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com')`;
 
     if (search) {
       // Safe parameterized search in SQLite

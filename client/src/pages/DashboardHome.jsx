@@ -141,6 +141,16 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-4"
         />
         <StatCard 
+          title="Other Bounces" 
+          value={stats.otherBounces} 
+          percentage={calcPercentage(stats.otherBounces)}
+          icon={<Mail size={24} />} 
+          colorClass="icon-blue"
+          type="other"
+          onGraphClick={handleGraphClick}
+          delay="delay-4"
+        />
+        <StatCard 
           title="Total Invalid" 
           value={stats.totalInvalid} 
           percentage={calcPercentage(stats.totalInvalid)}

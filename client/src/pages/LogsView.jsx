@@ -50,6 +50,7 @@ const LogsView = () => {
       gmail: 'Gmail Bounced Emails (Included Deferred)',
       yahoo: 'Yahoo Bounced Emails (Included Deferred)',
       outlook: 'Outlook/Hotmail Bounced Emails (Included Deferred)',
+      other: 'Other Bounced Emails (Included Deferred)',
       invalid: 'Invalid Recipient Emails',
       spam: 'SPAM Blocked Emails',
       queue: 'Active Mail Queue'
