@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Send, AlertCircle, Clock, Mail, CheckCircle, XCircle, Database
+  Send, AlertCircle, Clock, Mail, MailX, CheckCircle, XCircle, Database
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -114,7 +114,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           title="Gmail Bounces" 
           value={stats.gmailBounces} 
           percentage={calcPercentage(stats.gmailBounces)}
-          icon={<Mail size={24} />} 
+          icon={<MailX size={24} />} 
           colorClass="icon-purple"
           type="gmail"
           onGraphClick={handleGraphClick}
@@ -124,7 +124,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           title="Yahoo Bounces" 
           value={stats.yahooBounces} 
           percentage={calcPercentage(stats.yahooBounces)}
-          icon={<Mail size={24} />} 
+          icon={<MailX size={24} />} 
           colorClass="icon-purple"
           type="yahoo"
           onGraphClick={handleGraphClick}
@@ -134,7 +134,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           title="Outlook Bounces" 
           value={stats.outlookBounces} 
           percentage={calcPercentage(stats.outlookBounces)}
-          icon={<Mail size={24} />} 
+          icon={<MailX size={24} />} 
           colorClass="icon-blue"
           type="outlook"
           onGraphClick={handleGraphClick}
@@ -144,7 +144,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           title="Other Bounces" 
           value={stats.otherBounces} 
           percentage={calcPercentage(stats.otherBounces)}
-          icon={<Mail size={24} />} 
+          icon={<MailX size={24} />} 
           colorClass="icon-blue"
           type="other"
           onGraphClick={handleGraphClick}
