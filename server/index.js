@@ -84,6 +84,7 @@ app.get('/api/stats', async (req, res) => {
       topRecipientDomainsOutput,
       topSpamDomainsOutput,
       domainNotFoundOutput,
+      topRecipientEmailsAllOutput,
       historicalDataRaw
     ] = await Promise.all([
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause}`),
@@ -106,6 +107,8 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE is_spam=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT domain, COUNT(DISTINCT recipient) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 20`),
+      
+      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE status='sent' AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 10`),
       
       runQuery(`SELECT date(date) as day, status, COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE ${dateClause} GROUP BY day, status`)
     ]);
@@ -153,6 +156,7 @@ app.get('/api/stats', async (req, res) => {
       topBouncedDomainsYahoo: topSenderYahooOutput,
       topRecipientEmailsError: topRecipientEmailsOutput,
       topRecipientDomainsError: topRecipientDomainsOutput,
+      topRecipientEmailsAll: topRecipientEmailsAllOutput,
       topSpamDomains: topSpamDomainsOutput,
       blockedDomains: domainNotFoundOutput,
       historicalData: historicalData

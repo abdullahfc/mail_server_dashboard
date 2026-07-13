@@ -238,6 +238,10 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
       </div>
       
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
+        <DataTable title="Top Successful Recipient Emails" data={stats.topRecipientEmailsAll} valueKey="email" delay="delay-5" />
+      </div>
+      
+      <div className="grid-2-cols" style={{ marginTop: '24px' }}>
         <DataTable title="Gmail Bounces by Sender Domain" data={stats.topBouncedDomainsGmail} valueKey="domain" delay="delay-4" />
         <DataTable title="Yahoo Bounces by Sender Domain" data={stats.topBouncedDomainsYahoo} valueKey="domain" delay="delay-5" />
       </div>
