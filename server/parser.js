@@ -58,7 +58,7 @@ const processLine = async (line) => {
 
       // Advanced Tagging (Expanded for Outgoing Bounces)
       const isSpam = /spam|junk|blocked using|blacklisted|unsolicited|policy|reputation|high probability of spam/i.test(reason) ? 1 : 0;
-      const isInvalid = /user unknown|recipient address rejected|not found|no route/i.test(reason) ? 1 : 0;
+      const isInvalid = /user unknown|recipient address rejected|not found|no route|unrouteable|bad address|invalid recipient|no such user/i.test(reason) ? 1 : 0;
 
       // Insert into our fast database
       await runInsert(`
@@ -81,7 +81,7 @@ const processLine = async (line) => {
         const domainMatch = recipient.match(/@(.*)$/);
         const domain = domainMatch ? domainMatch[1] : 'unknown';
         const isSpam = /spam|junk|blocked using|blacklisted|unsolicited|policy|reputation/i.test(reason) ? 1 : 0;
-        const isInvalid = /user unknown|recipient address rejected|not found|no route/i.test(reason) ? 1 : 0;
+        const isInvalid = /user unknown|recipient address rejected|not found|no route|unrouteable|bad address|invalid recipient|no such user/i.test(reason) ? 1 : 0;
 
         await runInsert(`
           INSERT INTO deliveries (date, queue_id, sender, recipient, domain, status, reason, is_spam, is_invalid)

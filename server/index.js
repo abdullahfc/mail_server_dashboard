@@ -69,6 +69,8 @@ app.get('/api/stats', async (req, res) => {
     // Run parallel database queries
     const [
       [{ c: totalErrors }],
+      [{ c: totalBouncesOnly }],
+      [{ c: totalDeferredOnly }],
       [{ c: totalSent }],
       [{ c: totalInvalid }],
       [{ c: gmailBounces }],
@@ -88,8 +90,10 @@ app.get('/api/stats', async (req, res) => {
       historicalDataRaw
     ] = await Promise.all([
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='sent' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT recipient) as c FROM deliveries WHERE is_invalid=1 AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE is_invalid=1 AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
@@ -141,6 +145,8 @@ app.get('/api/stats', async (req, res) => {
 
     res.json({
       totalErrors: totalErrors || 0,
+      totalBouncesOnly: totalBouncesOnly || 0,
+      totalDeferredOnly: totalDeferredOnly || 0,
       gmailBounces: gmailBounces || 0,
       outlookBounces: outlookBounces || 0,
       yahooBounces: yahooBounces || 0,

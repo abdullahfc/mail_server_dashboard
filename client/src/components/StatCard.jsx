@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart2, List } from 'lucide-react';
 
-const StatCard = ({ title, value, icon, colorClass, delay, type, percentage, onGraphClick }) => {
+const StatCard = ({ title, value, icon, colorClass, delay, type, percentage, subText, onGraphClick }) => {
   const navigate = useNavigate();
 
   return (
@@ -10,11 +10,15 @@ const StatCard = ({ title, value, icon, colorClass, delay, type, percentage, onG
       <div className="stat-info">
         <div className="title">{title}</div>
         <div className="value">{(value !== undefined && value !== null) ? value.toLocaleString() : '0'}</div>
-        {percentage !== undefined && (
+        {subText ? (
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+            {subText}
+          </div>
+        ) : percentage !== undefined ? (
           <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
             {percentage}% of Total Sent
           </div>
-        )}
+        ) : null}
       </div>
       <div className={`stat-icon ${colorClass}`}>
         {icon}

@@ -91,7 +91,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
         <StatCard 
           title="Total Bounces/Deferred" 
           value={stats.totalErrors} 
-          percentage={calcPercentage(stats.totalErrors)}
+          subText={`Bounces: ${stats.totalBouncesOnly || 0} | Deferred: ${stats.totalDeferredOnly || 0}`}
           icon={<AlertCircle size={24} />} 
           colorClass="icon-red"
           type="errors"
