@@ -64,10 +64,15 @@ function App() {
   return (
     <Router>
       <div className="dashboard-container">
-        <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1>ISPConfig Mail Dashboard PRO</h1>
-            <p>Real-time analytics and email log monitoring</p>
+        <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(139,92,246,0.3))' }} />
+            <div>
+              <h1 style={{ margin: 0, fontSize: '24px', background: 'linear-gradient(to right, #a78bfa, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold' }}>
+                Mail Server Dashboard
+              </h1>
+              <p style={{ margin: '4px 0 0', color: '#9ca3af', fontSize: '14px' }}>Enterprise Analytics & Log Monitoring</p>
+            </div>
           </div>
           <div className="live-badge">
             <div className="dot"></div>
@@ -75,11 +80,11 @@ function App() {
           </div>
         </header>
 
-        <nav style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
-          <a href="/" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Dashboard</a>
-          <a href="/trace" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/trace' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Message Trace</a>
-          <a href="/reputation" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/reputation' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Reputation Health</a>
-          <a href="/domain-health" style={{ color: '#fff', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px', background: window.location.pathname === '/domain-health' ? 'rgba(255,255,255,0.1)' : 'transparent' }}>Domain Auth</a>
+        <nav className="main-nav" style={{ display: 'flex', gap: '8px', marginBottom: '32px' }}>
+          <a href="/" className={`nav-link ${window.location.pathname === '/' ? 'active' : ''}`}>Dashboard</a>
+          <a href="/trace" className={`nav-link ${window.location.pathname === '/trace' ? 'active' : ''}`}>Message Trace</a>
+          <a href="/reputation" className={`nav-link ${window.location.pathname === '/reputation' ? 'active' : ''}`}>Reputation Health</a>
+          <a href="/domain-health" className={`nav-link ${window.location.pathname === '/domain-health' ? 'active' : ''}`}>Domain Auth</a>
         </nav>
 
         <Routes>
