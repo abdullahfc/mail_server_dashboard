@@ -47,10 +47,10 @@ const LogsView = () => {
     const titles = {
       sent: 'Successfully Sent Emails',
       errors: 'Total Bounced & Deferred Emails',
-      gmail: 'Gmail Bounced Emails (Included Deferred)',
-      yahoo: 'Yahoo Bounced Emails (Included Deferred)',
-      outlook: 'Outlook/Hotmail Bounced Emails (Included Deferred)',
-      other: 'Other Bounced Emails (Included Deferred)',
+      gmail: 'Gmail Bounced Emails',
+      yahoo: 'Yahoo Bounced Emails',
+      outlook: 'Outlook/Hotmail Bounced Emails',
+      other: 'Other Bounced Emails',
       invalid: 'Invalid Recipient Emails',
       spam: 'SPAM Blocked Emails',
       queue: 'Active Mail Queue'
