@@ -63,6 +63,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           <option value="1h">Last 1 Hour</option>
           <option value="24h">Last 24 Hours</option>
           <option value="today">Today</option>
+          <option value="3d">Last 3 Days</option>
           <option value="7d">Last 7 Days</option>
           <option value="30d">Last 30 Days</option>
           <option value="all">All Time (Years)</option>
@@ -234,7 +235,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
 
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
         <DataTable title="Top Domains Causing Errors (Overall)" data={stats.topRecipientDomainsError} valueKey="domain" delay="delay-4" />
-        <DataTable title="Top Email Addresses Causing Errors" data={stats.topRecipientEmailsError} valueKey="email" delay="delay-5" />
+        <DataTable title="Invalid Email Addresses" data={stats.topRecipientEmailsError} valueKey="email" delay="delay-5" />
       </div>
       
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
@@ -248,7 +249,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
 
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
         <DataTable title="Top Domains Reporting Spam" data={stats.topSpamDomains} valueKey="domain" delay="delay-5" />
-        <DataTable title="Domains with Invalid Recipients" data={stats.blockedDomains} valueKey="domain" delay="delay-5" />
+        <DataTable title="Blocked Email Addresses" data={stats.blockedDomains} valueKey="email" delay="delay-5" />
       </div>
     </>
   );

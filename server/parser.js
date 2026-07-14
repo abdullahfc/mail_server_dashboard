@@ -48,8 +48,12 @@ const processLine = async (line) => {
     const toMatch = payload.match(/to=<([^>]+)>.*status=([^ ]+)\s+\((.*)\)/i);
     if (toMatch) {
       const recipient = toMatch[1];
-      const status = toMatch[2]; // sent, bounced, deferred
+      let status = toMatch[2]; // sent, bounced, deferred
       const reason = toMatch[3];
+      
+      if (/cloudmark|csi/i.test(reason)) {
+        status = 'deferred';
+      }
       
       const domainMatch = recipient.match(/@(.*)$/);
       const domain = domainMatch ? domainMatch[1] : 'unknown';
@@ -75,8 +79,12 @@ const processLine = async (line) => {
       if (noQueueMatch) {
         const formattedDate = parseLogDate(noQueueMatch[1]);
         const recipient = noQueueMatch[2];
-        const status = noQueueMatch[3];
+        let status = noQueueMatch[3];
         const reason = noQueueMatch[4];
+        
+        if (/cloudmark|csi/i.test(reason)) {
+          status = 'deferred';
+        }
         
         const domainMatch = recipient.match(/@(.*)$/);
         const domain = domainMatch ? domainMatch[1] : 'unknown';

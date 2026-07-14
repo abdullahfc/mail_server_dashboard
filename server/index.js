@@ -56,6 +56,7 @@ app.get('/api/stats', async (req, res) => {
     if (!range || range === 'today') dateClause = `date LIKE '${todayPrefix}%'`;
     else if (range === '1h') dateClause = `date >= datetime('now', '-1 hour', 'localtime')`;
     else if (range === '24h') dateClause = `date >= datetime('now', '-24 hour', 'localtime')`;
+    else if (range === '3d') dateClause = `date >= datetime('now', '-3 day', 'localtime')`;
     else if (range === '7d') dateClause = `date >= datetime('now', '-7 day', 'localtime')`;
     else if (range === '30d') dateClause = `date >= datetime('now', '-30 day', 'localtime')`;
     else if (range === 'all') dateClause = `1=1`;
@@ -94,10 +95,10 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='sent' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE is_invalid=1 AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain='gmail.com' AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
       
       // New SPAM Metrics
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND is_spam=1 AND ${dateClause}`),
@@ -107,10 +108,10 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
       
-      runQuery(`SELECT sender as email, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
       runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE is_spam=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
-      runQuery(`SELECT domain, COUNT(DISTINCT recipient) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 20`),
+      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE (reason LIKE '%blocked%' OR reason LIKE '%CSI%' OR reason LIKE '%Cloudmark%' OR reason LIKE '%blacklist%' OR reason LIKE '%rbl%' OR reason LIKE '%dnsbl%' OR reason LIKE '%denied%') AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 20`),
       
       runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE status='sent' AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 10`),
       
@@ -191,6 +192,11 @@ app.get('/api/logs', async (req, res) => {
     let dateClause = '';
     const todayPrefix = new Date().toISOString().slice(0, 10);
     if (!range || range === 'today') dateClause = `date LIKE '${todayPrefix}%'`;
+    else if (range === '1h') dateClause = `date >= datetime('now', '-1 hour', 'localtime')`;
+    else if (range === '24h') dateClause = `date >= datetime('now', '-24 hour', 'localtime')`;
+    else if (range === '3d') dateClause = `date >= datetime('now', '-3 day', 'localtime')`;
+    else if (range === '7d') dateClause = `date >= datetime('now', '-7 day', 'localtime')`;
+    else if (range === '30d') dateClause = `date >= datetime('now', '-30 day', 'localtime')`;
     else if (range === 'all') dateClause = `1=1`;
     else dateClause = `date LIKE '${todayPrefix}%'`;
 
