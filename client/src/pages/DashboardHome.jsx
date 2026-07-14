@@ -114,7 +114,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
         <StatCard 
           title="Gmail Bounces" 
           value={stats.gmailBounces} 
-          percentage={calcPercentage(stats.gmailBounces)}
+          subText={`Bounces: ${stats.gmailBouncesOnly || 0} | Deferred: ${stats.gmailDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-purple"
           type="gmail"
@@ -124,7 +124,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
         <StatCard 
           title="Yahoo Bounces" 
           value={stats.yahooBounces} 
-          percentage={calcPercentage(stats.yahooBounces)}
+          subText={`Bounces: ${stats.yahooBouncesOnly || 0} | Deferred: ${stats.yahooDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-purple"
           type="yahoo"
@@ -134,7 +134,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
         <StatCard 
           title="Outlook Bounces" 
           value={stats.outlookBounces} 
-          percentage={calcPercentage(stats.outlookBounces)}
+          subText={`Bounces: ${stats.outlookBouncesOnly || 0} | Deferred: ${stats.outlookDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-blue"
           type="outlook"
@@ -144,7 +144,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
         <StatCard 
           title="Other Bounces" 
           value={stats.otherBounces} 
-          percentage={calcPercentage(stats.otherBounces)}
+          subText={`Bounces: ${stats.otherBouncesOnly || 0} | Deferred: ${stats.otherDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-blue"
           type="other"
