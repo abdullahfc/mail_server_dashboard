@@ -51,7 +51,7 @@ const processLine = async (line) => {
       let status = toMatch[2]; // sent, bounced, deferred
       const reason = toMatch[3];
       
-      if (/cloudmark|csi/i.test(reason)) {
+      if (status !== 'sent' && /cloudmark|\bcsi\b/i.test(reason)) {
         status = 'deferred';
       }
       
@@ -62,7 +62,7 @@ const processLine = async (line) => {
 
       // Advanced Tagging (Expanded for Outgoing Bounces)
       const isSpam = /spam|junk|blocked using|blacklisted|unsolicited|policy|reputation|high probability of spam/i.test(reason) ? 1 : 0;
-      const isInvalid = /user unknown|recipient address rejected|not found|no route|unrouteable|bad address|invalid recipient|no such user/i.test(reason) ? 1 : 0;
+      const isInvalid = (status === 'bounced' && /user unknown|recipient address rejected|not found|no route|unrouteable|bad address|invalid recipient|no such user/i.test(reason)) ? 1 : 0;
 
       // Insert into our fast database
       await runInsert(`
@@ -82,14 +82,14 @@ const processLine = async (line) => {
         let status = noQueueMatch[3];
         const reason = noQueueMatch[4];
         
-        if (/cloudmark|csi/i.test(reason)) {
+        if (status !== 'sent' && /cloudmark|\bcsi\b/i.test(reason)) {
           status = 'deferred';
         }
         
         const domainMatch = recipient.match(/@(.*)$/);
         const domain = domainMatch ? domainMatch[1] : 'unknown';
         const isSpam = /spam|junk|blocked using|blacklisted|unsolicited|policy|reputation/i.test(reason) ? 1 : 0;
-        const isInvalid = /user unknown|recipient address rejected|not found|no route|unrouteable|bad address|invalid recipient|no such user/i.test(reason) ? 1 : 0;
+        const isInvalid = (status === 'bounced' && /user unknown|recipient address rejected|not found|no route|unrouteable|bad address|invalid recipient|no such user/i.test(reason)) ? 1 : 0;
 
         await runInsert(`
           INSERT INTO deliveries (date, queue_id, sender, recipient, domain, status, reason, is_spam, is_invalid)

@@ -112,8 +112,9 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginTop: '24px' }}>
         <StatCard 
-          title="Gmail Bounces" 
+          title="Gmail Bounces/Deferred" 
           value={stats.gmailBounces} 
+          percentage={calcPercentage(stats.gmailBounces)}
           subText={`Bounces: ${stats.gmailBouncesOnly || 0} | Deferred: ${stats.gmailDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-purple"
@@ -122,8 +123,9 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-3"
         />
         <StatCard 
-          title="Yahoo Bounces" 
+          title="Yahoo Bounces/Deferred" 
           value={stats.yahooBounces} 
+          percentage={calcPercentage(stats.yahooBounces)}
           subText={`Bounces: ${stats.yahooBouncesOnly || 0} | Deferred: ${stats.yahooDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-purple"
@@ -132,8 +134,9 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-3"
         />
         <StatCard 
-          title="Outlook Bounces" 
+          title="Outlook Bounces/Deferred" 
           value={stats.outlookBounces} 
+          percentage={calcPercentage(stats.outlookBounces)}
           subText={`Bounces: ${stats.outlookBouncesOnly || 0} | Deferred: ${stats.outlookDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-blue"
@@ -142,8 +145,9 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
           delay="delay-4"
         />
         <StatCard 
-          title="Other Bounces" 
+          title="Other Bounces/Deferred" 
           value={stats.otherBounces} 
+          percentage={calcPercentage(stats.otherBounces)}
           subText={`Bounces: ${stats.otherBouncesOnly || 0} | Deferred: ${stats.otherDeferredOnly || 0}`}
           icon={<MailX size={24} />} 
           colorClass="icon-blue"

@@ -10,15 +10,16 @@ const StatCard = ({ title, value, icon, colorClass, delay, type, percentage, sub
       <div className="stat-info">
         <div className="title">{title}</div>
         <div className="value">{(value !== undefined && value !== null) ? value.toLocaleString() : '0'}</div>
-        {subText ? (
-          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
-            {subText}
-          </div>
-        ) : percentage !== undefined ? (
+        {percentage !== undefined && (
           <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
             {percentage}% of Total Sent
           </div>
-        ) : null}
+        )}
+        {subText && (
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+            {subText}
+          </div>
+        )}
       </div>
       <div className={`stat-icon ${colorClass}`}>
         {icon}
