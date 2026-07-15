@@ -22,10 +22,10 @@ const Sidebar = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
         <img src="/logo.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(139,92,246,0.3))' }} />
         <div>
-          <h1 style={{ margin: 0, fontSize: '18px', background: 'linear-gradient(to right, #a78bfa, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold' }}>
-            Fusion Cortex
+          <h1 style={{ margin: 0, fontSize: '15px', background: 'linear-gradient(to right, #a78bfa, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold', lineHeight: '1.2' }}>
+            Mail Server Dashboard
           </h1>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '11px', fontWeight: 'bold' }}>MAIL DASHBOARD</p>
+          <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '11px', fontWeight: 'bold' }}>MAIL DASHBOARD</p>
         </div>
       </div>
 
