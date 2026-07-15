@@ -33,6 +33,16 @@ db.serialize(() => {
   db.run(`CREATE INDEX IF NOT EXISTS idx_date ON deliveries(date)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_status ON deliveries(status)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_domain ON deliveries(domain)`);
+
+  // Cleanup task: Fix historical data where successful deliveries were incorrectly marked as deferred due to transaction ID matching 'csi'
+  db.run(`
+    UPDATE deliveries 
+    SET status = 'sent' 
+    WHERE (reason LIKE '%250 %' OR reason LIKE '%250 2.0.0 OK%' OR reason LIKE '%queued as%') AND status != 'sent'
+  `, (err) => {
+    if (err) console.error("Error running database cleanup:", err);
+    else console.log("Database cleanup: Historical records verified and corrected.");
+  });
 });
 
 // Helper functions for easy querying
