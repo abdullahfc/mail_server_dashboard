@@ -332,7 +332,43 @@ app.get('/api/trace', async (req, res) => {
     }
 
     const rows = await runQuery(sqlQuery, params);
-    res.json({ logs: rows });
+    
+    const logs = rows.map(row => {
+      const categories = [];
+      const domain = row.domain || '';
+      const reason = row.reason || '';
+      const status = row.status || '';
+
+      const isGmail = (domain === 'gmail.com' || /google|gmail/i.test(reason));
+      const isOutlook = (['outlook.com', 'hotmail.com'].includes(domain) || /outlook\.com|hotmail\.com|microsoft\.com|mail\.protection\.outlook\.com/i.test(reason));
+      const isYahoo = (['yahoo.com', 'ymail.com', 'rocketmail.com'].includes(domain) || /yahoo|ymail|yahoodns/i.test(reason));
+
+      if (isGmail && (status === 'bounced' || status === 'deferred')) {
+        categories.push('Gmail Bounces/Deferred');
+      }
+      if (isOutlook && (status === 'bounced' || status === 'deferred')) {
+        categories.push('Outlook Bounces/Deferred');
+      }
+      if (isYahoo && (status === 'bounced' || status === 'deferred')) {
+        categories.push('Yahoo Bounces/Deferred');
+      }
+      if (!isGmail && !isOutlook && !isYahoo && (status === 'bounced' || status === 'deferred')) {
+        categories.push('Domains Causing Errors');
+      }
+      if (row.is_invalid === 1) {
+        categories.push('Invalid Email Addresses');
+      }
+      if (row.is_spam === 1) {
+        categories.push('Domains Reporting SPAM');
+      }
+
+      return {
+        ...row,
+        categories
+      };
+    });
+
+    res.json({ logs });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to trace message' });

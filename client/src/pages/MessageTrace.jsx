@@ -155,6 +155,24 @@ const MessageTrace = () => {
                       <SmtpBadge reason={log.reason} />
                     </span>
                   </div>
+                  {log.categories && log.categories.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8em', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>Active Tabs:</span>
+                      {log.categories.map((cat, cIdx) => (
+                        <span key={cIdx} style={{ 
+                          fontSize: '0.75rem', 
+                          padding: '2px 8px', 
+                          background: 'rgba(139, 92, 246, 0.1)', 
+                          border: '1px solid rgba(139, 92, 246, 0.2)', 
+                          color: '#c084fc', 
+                          borderRadius: '4px',
+                          fontWeight: '600'
+                        }}>
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.85em', fontFamily: 'monospace', color: '#94a3b8' }}>
                     {log.reason}
                   </div>
