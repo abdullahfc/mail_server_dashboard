@@ -62,6 +62,11 @@ app.get('/api/stats', async (req, res) => {
     else if (range === 'all') dateClause = `1=1`;
     else dateClause = `date LIKE '${todayPrefix}%'`;
 
+    const isGmailSQL = `(domain='gmail.com' OR reason LIKE '%google%' OR reason LIKE '%gmail%')`;
+    const isOutlookSQL = `(domain IN ('outlook.com', 'hotmail.com') OR reason LIKE '%outlook.com%' OR reason LIKE '%hotmail.com%' OR reason LIKE '%microsoft.com%' OR reason LIKE '%mail.protection.outlook.com%')`;
+    const isYahooSQL = `(domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') OR reason LIKE '%yahoo%' OR reason LIKE '%ymail%' OR reason LIKE '%yahoodns%')`;
+    const isOtherSQL = `(NOT (domain='gmail.com' OR reason LIKE '%google%' OR reason LIKE '%gmail%') AND NOT (domain IN ('outlook.com', 'hotmail.com') OR reason LIKE '%outlook.com%' OR reason LIKE '%hotmail.com%' OR reason LIKE '%microsoft.com%' OR reason LIKE '%mail.protection.outlook.com%') AND NOT (domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') OR reason LIKE '%yahoo%' OR reason LIKE '%ymail%' OR reason LIKE '%yahoodns%'))`;
+
     // Active Queue (still uses mailq)
     const activeQueueCmd = `mailq | grep -c "^[A-F0-9]" || echo "0"`;
     const activeQueueRaw = await runCommand(activeQueueCmd);
@@ -99,14 +104,14 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='sent' AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE is_invalid=1 AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND domain='gmail.com' AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
-      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND ${isGmailSQL} AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${isGmailSQL} AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND ${isOutlookSQL} AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${isOutlookSQL} AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND ${isYahooSQL} AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${isYahooSQL} AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND ${isOtherSQL} AND ${dateClause}`),
+      runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='deferred' AND ${isOtherSQL} AND ${dateClause}`),
       
       // New SPAM Metrics
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND is_spam=1 AND ${dateClause}`),
@@ -223,16 +228,21 @@ app.get('/api/logs', async (req, res) => {
 
     let whereClause = dateClause;
 
+    const isGmailSQL = `(domain='gmail.com' OR reason LIKE '%google%' OR reason LIKE '%gmail%')`;
+    const isOutlookSQL = `(domain IN ('outlook.com', 'hotmail.com') OR reason LIKE '%outlook.com%' OR reason LIKE '%hotmail.com%' OR reason LIKE '%microsoft.com%' OR reason LIKE '%mail.protection.outlook.com%')`;
+    const isYahooSQL = `(domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') OR reason LIKE '%yahoo%' OR reason LIKE '%ymail%' OR reason LIKE '%yahoodns%')`;
+    const isOtherSQL = `(NOT (domain='gmail.com' OR reason LIKE '%google%' OR reason LIKE '%gmail%') AND NOT (domain IN ('outlook.com', 'hotmail.com') OR reason LIKE '%outlook.com%' OR reason LIKE '%hotmail.com%' OR reason LIKE '%microsoft.com%' OR reason LIKE '%mail.protection.outlook.com%') AND NOT (domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') OR reason LIKE '%yahoo%' OR reason LIKE '%ymail%' OR reason LIKE '%yahoodns%'))`;
+
     if (type === 'sent') whereClause += ` AND status='sent'`;
     else if (type === 'errors') whereClause += ` AND status IN ('bounced', 'deferred')`;
     else if (type === 'spam') whereClause += ` AND is_spam=1`;
     else if (type === 'outgoing_spam') whereClause += ` AND status='bounced' AND is_spam=1`;
     else if (type === 'incoming_spam') whereClause += ` AND status='incoming_spam' AND is_spam=1`;
     else if (type === 'invalid') whereClause += ` AND is_invalid=1`;
-    else if (type === 'gmail') whereClause += ` AND status IN ('bounced', 'deferred') AND domain='gmail.com'`;
-    else if (type === 'outlook') whereClause += ` AND status IN ('bounced', 'deferred') AND domain IN ('outlook.com', 'hotmail.com')`;
-    else if (type === 'yahoo') whereClause += ` AND status IN ('bounced', 'deferred') AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com')`;
-    else if (type === 'other') whereClause += ` AND status IN ('bounced', 'deferred') AND domain NOT IN ('gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'ymail.com', 'rocketmail.com')`;
+    else if (type === 'gmail') whereClause += ` AND status IN ('bounced', 'deferred') AND ${isGmailSQL}`;
+    else if (type === 'outlook') whereClause += ` AND status IN ('bounced', 'deferred') AND ${isOutlookSQL}`;
+    else if (type === 'yahoo') whereClause += ` AND status IN ('bounced', 'deferred') AND ${isYahooSQL}`;
+    else if (type === 'other') whereClause += ` AND status IN ('bounced', 'deferred') AND ${isOtherSQL}`;
 
     if (search) {
       // Safe parameterized search in SQLite
