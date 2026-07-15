@@ -1,6 +1,45 @@
 import React, { useState } from 'react';
 import { Search, Activity, Mail, Clock, CheckCircle, XCircle } from 'lucide-react';
 
+const SmtpBadge = ({ reason }) => {
+  if (!reason) return null;
+  const match = reason.match(/\b([245]\d{2})\b/);
+  if (!match) return null;
+  
+  const code = match[1];
+  let bg = 'rgba(255, 255, 255, 0.1)';
+  let color = '#fff';
+  
+  if (code.startsWith('2')) {
+    bg = 'rgba(16, 185, 129, 0.15)';
+    color = '#34d399';
+  } else if (code.startsWith('4')) {
+    bg = 'rgba(245, 158, 11, 0.15)';
+    color = '#fbbf24';
+  } else if (code.startsWith('5')) {
+    bg = 'rgba(239, 68, 68, 0.15)';
+    color = '#f87171';
+  }
+  
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '2px 8px',
+      borderRadius: '9999px',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      backgroundColor: bg,
+      color: color,
+      marginLeft: '8px',
+      fontFamily: 'monospace',
+      verticalAlign: 'middle'
+    }}>
+      {code}
+    </span>
+  );
+};
+
 const MessageTrace = () => {
   const [query, setQuery] = useState('');
   const [logs, setLogs] = useState([]);
@@ -89,8 +128,10 @@ const MessageTrace = () => {
       )}
 
       {!loading && logs.length > 0 && (
-        <div className="glass-panel">
-          <h3>Trace Results ({logs.length} found)</h3>
+        <>
+          <hr style={{ border: 'none', borderTop: '1px dashed rgba(255,255,255,0.1)', margin: '32px 0' }} />
+          <div className="glass-panel">
+            <h3>Trace Results ({logs.length} found)</h3>
           <div style={{ marginTop: '20px' }}>
             {logs.map((log, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '16px', padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
@@ -102,9 +143,15 @@ const MessageTrace = () => {
                     <strong style={{ fontSize: '1.1em' }}>{log.queue_id || 'Unknown ID'} &rarr; {log.recipient}</strong>
                     <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9em' }}>{new Date(log.date).toLocaleString()}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.9em', color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.9em', color: 'rgba(255,255,255,0.7)', marginBottom: '8px', alignItems: 'center' }}>
                     <span><strong>Sender:</strong> {log.sender || 'System'}</span>
-                    <span><strong>Status:</strong> <span style={{ textTransform: 'uppercase', color: log.status === 'sent' ? '#10b981' : log.status === 'bounced' ? '#ef4444' : '#f59e0b' }}>{log.status}</span></span>
+                    <span>
+                      <strong>Status:</strong>{" "}
+                      <span style={{ textTransform: 'uppercase', color: log.status === 'sent' ? '#10b981' : log.status === 'bounced' ? '#ef4444' : '#f59e0b' }}>
+                        {log.status}
+                      </span>
+                      <SmtpBadge reason={log.reason} />
+                    </span>
                   </div>
                   <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.85em', fontFamily: 'monospace', color: '#94a3b8' }}>
                     {log.reason}
@@ -113,7 +160,8 @@ const MessageTrace = () => {
               </div>
             ))}
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

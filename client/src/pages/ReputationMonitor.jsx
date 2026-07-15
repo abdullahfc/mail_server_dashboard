@@ -69,7 +69,7 @@ const ReputationMonitor = () => {
 
       <div className="glass-panel">
         <h3 style={{ marginBottom: '20px' }}>DNSBL (DNS Blackhole List) Status</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+        <div className="dnsbl-grid">
           {data?.blacklists?.map((bl, idx) => (
             <div key={idx} style={{ 
               padding: '20px', 

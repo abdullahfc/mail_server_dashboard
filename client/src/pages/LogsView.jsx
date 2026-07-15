@@ -2,6 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Activity, AlertTriangle } from 'lucide-react';
 
+const SmtpBadge = ({ reason }) => {
+  if (!reason) return null;
+  const match = reason.match(/\b([245]\d{2})\b/);
+  if (!match) return null;
+  
+  const code = match[1];
+  let bg = 'rgba(255, 255, 255, 0.1)';
+  let color = '#fff';
+  
+  if (code.startsWith('2')) {
+    bg = 'rgba(16, 185, 129, 0.15)';
+    color = '#34d399';
+  } else if (code.startsWith('4')) {
+    bg = 'rgba(245, 158, 11, 0.15)';
+    color = '#fbbf24';
+  } else if (code.startsWith('5')) {
+    bg = 'rgba(239, 68, 68, 0.15)';
+    color = '#f87171';
+  }
+  
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '2px 8px',
+      borderRadius: '9999px',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      backgroundColor: bg,
+      color: color,
+      marginRight: '8px',
+      fontFamily: 'monospace',
+      flexShrink: 0
+    }}>
+      {code}
+    </span>
+  );
+};
+
 const LogsView = () => {
   const { type } = useParams();
   const navigate = useNavigate();
@@ -140,7 +179,10 @@ const LogsView = () => {
                     <td style={{ color: '#60a5fa', fontWeight: '500' }}>{log.email}</td>
                     <td style={{ color: 'rgba(255,255,255,0.7)' }}>{log.date}</td>
                     <td style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', wordBreak: 'break-word' }}>
-                      {log.reason}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <SmtpBadge reason={log.reason} />
+                        <span>{log.reason}</span>
+                      </div>
                     </td>
                   </tr>
                 ))}

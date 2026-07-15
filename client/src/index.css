@@ -254,7 +254,7 @@ p {
 
 .data-table th {
   text-align: left;
-  padding: 12px;
+  padding: 16px 24px;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
@@ -263,10 +263,11 @@ p {
 }
 
 .data-table td {
-  padding: 16px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
   font-size: 14px;
   color: var(--text-primary);
+  line-height: 1.625;
 }
 
 .data-table tr:last-child td {
@@ -278,7 +279,19 @@ p {
 }
 
 .data-table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dnsbl-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .dnsbl-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .count-badge {

@@ -43,6 +43,16 @@ db.serialize(() => {
     if (err) console.error("Error running database cleanup:", err);
     else console.log("Database cleanup: Historical records verified and corrected.");
   });
+
+  // Cleanup task: Fix historical data where deferred or sent emails were incorrectly marked as invalid
+  db.run(`
+    UPDATE deliveries 
+    SET is_invalid = 0 
+    WHERE status != 'bounced' AND is_invalid = 1
+  `, (err) => {
+    if (err) console.error("Error running database invalid status cleanup:", err);
+    else console.log("Database cleanup: Historical invalid statuses verified and corrected.");
+  });
 });
 
 // Helper functions for easy querying
