@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Search, Activity, Mail, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const SmtpBadge = ({ reason }) => {
-  if (!reason) return null;
-  const match = reason.match(/\b([245]\d{2})\b/);
-  if (!match) return null;
+  if (!reason) return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600', backgroundColor: 'rgba(255, 255, 255, 0.05)', color: 'rgba(255, 255, 255, 0.6)', marginLeft: '8px', fontFamily: 'monospace', verticalAlign: 'middle' }}>N/A</span>;
   
-  const code = match[1];
-  let bg = 'rgba(255, 255, 255, 0.1)';
-  let color = '#fff';
+  // Strip bracketed IP addresses like [68.232.129.85] and standalone IPs first
+  const cleanedReason = reason.replace(/\[\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\]/g, '').replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '');
+  const match = cleanedReason.match(/\b([245]\d{2})\b/);
+  
+  const code = match ? match[1] : 'N/A';
+  let bg = 'rgba(255, 255, 255, 0.05)';
+  let color = 'rgba(255, 255, 255, 0.6)';
   
   if (code.startsWith('2')) {
     bg = 'rgba(16, 185, 129, 0.15)';

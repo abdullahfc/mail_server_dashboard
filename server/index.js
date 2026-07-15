@@ -117,16 +117,16 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND is_spam=1 AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='incoming_spam' AND is_spam=1 AND ${dateClause}`),
       
-      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
-      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
-      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
       
-      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 10`),
-      runQuery(`SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
-      runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE is_spam=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC LIMIT 10`),
-      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE (reason LIKE '%blocked%' OR reason LIKE '%CSI%' OR reason LIKE '%Cloudmark%' OR reason LIKE '%blacklist%' OR reason LIKE '%rbl%' OR reason LIKE '%dnsbl%' OR reason LIKE '%denied%') AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 20`),
+      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY recipient ORDER BY count DESC`),
+      runQuery(`SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC`),
+      runQuery(`SELECT domain, COUNT(*) as count FROM deliveries WHERE is_spam=1 AND ${dateClause} GROUP BY domain ORDER BY count DESC`),
+      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE (reason LIKE '%blocked%' OR reason LIKE '%CSI%' OR reason LIKE '%Cloudmark%' OR reason LIKE '%blacklist%' OR reason LIKE '%rbl%' OR reason LIKE '%dnsbl%' OR reason LIKE '%denied%') AND ${dateClause} GROUP BY recipient ORDER BY count DESC`),
       
-      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE status='sent' AND ${dateClause} GROUP BY recipient ORDER BY count DESC LIMIT 10`),
+      runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE status='sent' AND ${dateClause} GROUP BY recipient ORDER BY count DESC`),
       
       runQuery(`SELECT date(date) as day, status, COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE ${dateClause} GROUP BY day, status`)
     ]);
@@ -451,7 +451,101 @@ app.get('/api/domain-health', async (req, res) => {
   }
 });
 
+// GET /api/blocked-transports
+app.get('/api/blocked-transports', (req, res) => {
+  const fs = require('fs');
+  const blockFile = '/etc/postfix/blocked_transports';
+  
+  if (!isLinux) {
+    return res.json({
+      blocked: [
+        { target: 'testingblock.com', error: 'error:5.1.2 Domain does not exist (permanently blocked)' },
+        { target: 'spamtarget@domain.com', error: 'error:5.1.1 Mailbox does not exist (permanently blocked)' }
+      ]
+    });
+  }
 
+  try {
+    if (!fs.existsSync(blockFile)) {
+      return res.json({ blocked: [] });
+    }
+    const content = fs.readFileSync(blockFile, 'utf8');
+    const blocked = content.split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#'))
+      .map(line => {
+        const parts = line.split(/\s+/);
+        const target = parts[0];
+        const error = parts.slice(1).join(' ');
+        return { target, error };
+      });
+    res.json({ blocked });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read blocklist file' });
+  }
+});
+
+// POST /api/blocked-transports
+app.post('/api/blocked-transports', async (req, res) => {
+  const fs = require('fs');
+  const blockFile = '/etc/postfix/blocked_transports';
+  const { target, type } = req.body;
+  
+  if (!target) return res.status(400).json({ error: 'Target is required' });
+  
+  const errorCode = type === 'domain' ? 'error:5.1.2 Domain does not exist (permanently blocked)' : 'error:5.1.1 Mailbox does not exist (permanently blocked)';
+  const newEntry = `${target} ${errorCode}`;
+
+  if (!isLinux) {
+    console.log(`Mock Add Block: ${newEntry}`);
+    return res.json({ success: true });
+  }
+
+  try {
+    fs.appendFileSync(blockFile, `\n${newEntry}\n`);
+    const { exec } = require('child_process');
+    exec('sudo postmap /etc/postfix/blocked_transports && sudo postfix reload', (err) => {
+      if (err) console.error('Error remapping postfix blocklist:', err);
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to write to blocklist file' });
+  }
+});
+
+// DELETE /api/blocked-transports
+app.delete('/api/blocked-transports', async (req, res) => {
+  const fs = require('fs');
+  const blockFile = '/etc/postfix/blocked_transports';
+  const { target } = req.body;
+
+  if (!target) return res.status(400).json({ error: 'Target is required' });
+
+  if (!isLinux) {
+    console.log(`Mock Delete Block: ${target}`);
+    return res.json({ success: true });
+  }
+
+  try {
+    if (!fs.existsSync(blockFile)) {
+      return res.status(404).json({ error: 'Blocklist file not found' });
+    }
+    const lines = fs.readFileSync(blockFile, 'utf8').split('\n');
+    const filteredLines = lines.filter(line => {
+      const trimmed = line.trim();
+      return !trimmed.startsWith(target + ' ');
+    });
+    fs.writeFileSync(blockFile, filteredLines.join('\n'));
+    
+    const { exec } = require('child_process');
+    exec('sudo postmap /etc/postfix/blocked_transports && sudo postfix reload', (err) => {
+      if (err) console.error('Error remapping postfix blocklist:', err);
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update blocklist file' });
+  }
+});
 
 // Serve static frontend files from the client/dist folder
 const path = require('path');

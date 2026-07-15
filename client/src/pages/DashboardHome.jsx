@@ -110,7 +110,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
         />
       </div>
 
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginTop: '24px' }}>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', marginTop: '24px' }}>
         <StatCard 
           title="Gmail Bounces/Deferred" 
           value={stats.gmailBounces} 
@@ -238,12 +238,8 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
       </div>
 
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
-        <DataTable title="Top Domains Causing Errors (Overall)" data={stats.topRecipientDomainsError} valueKey="domain" delay="delay-4" />
+        <DataTable title="Domains Causing Errors (Overall)" data={stats.topRecipientDomainsError} valueKey="domain" delay="delay-4" />
         <DataTable title="Invalid Email Addresses" data={stats.topRecipientEmailsError} valueKey="email" delay="delay-5" />
-      </div>
-      
-      <div className="grid-2-cols" style={{ marginTop: '24px' }}>
-        <DataTable title="Top Successful Recipient Emails" data={stats.topRecipientEmailsAll} valueKey="email" delay="delay-5" />
       </div>
       
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
@@ -252,7 +248,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
       </div>
 
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
-        <DataTable title="Top Domains Reporting Spam" data={stats.topSpamDomains} valueKey="domain" delay="delay-5" />
+        <DataTable title="Domains Reporting Spam" data={stats.topSpamDomains} valueKey="domain" delay="delay-5" />
         <DataTable title="Blocked Email Addresses" data={stats.blockedDomains} valueKey="email" delay="delay-5" />
       </div>
     </>
