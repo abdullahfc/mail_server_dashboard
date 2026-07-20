@@ -6,6 +6,7 @@ const ReputationMonitor = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [customIp, setCustomIp] = useState('');
+  const [showCloudmarkLogs, setShowCloudmarkLogs] = useState(false);
 
   const fetchReputation = async (targetIp = '') => {
     setLoading(true);
@@ -115,9 +116,20 @@ const ReputationMonitor = () => {
 
           {/* Cloudmark CSI & Specialty Reputation Row */}
           <div className="glass-panel" style={{ marginBottom: '24px' }}>
-            <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Cpu size={22} style={{ color: '#a78bfa' }} /> Cloudmark CSI (Cloudmark Sender Intelligence) Status
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Cpu size={22} style={{ color: '#a78bfa' }} /> Cloudmark CSI (Cloudmark Sender Intelligence) Status
+              </h3>
+              <a 
+                href="https://csi.cloudmark.com/en/reset/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ fontSize: '0.85em', padding: '6px 14px', background: 'rgba(167, 139, 250, 0.15)', border: '1px solid rgba(167, 139, 250, 0.3)', borderRadius: '6px', color: '#c084fc', textDecoration: 'none', fontWeight: 'bold' }}
+              >
+                Submit Delisting Request (CSI Portal) &rarr;
+              </a>
+            </div>
+
             <div style={{ 
               padding: '16px 20px', 
               borderRadius: '8px', 
@@ -125,7 +137,9 @@ const ReputationMonitor = () => {
               border: `1px solid ${data.cloudmark?.listed ? '#ef4444' : 'rgba(16,185,129,0.3)'}`,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
             }}>
               <div>
                 <strong style={{ fontSize: '1.15em', display: 'block', color: data.cloudmark?.listed ? '#ef4444' : '#10b981' }}>
@@ -137,10 +151,38 @@ const ReputationMonitor = () => {
                     : 'Your mail server logs show 0 rejections or bounces originating from Cloudmark CSI reputation filters.'}
                 </span>
               </div>
-              <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {data.cloudmark?.listed && data.cloudmark?.logs?.length > 0 && (
+                  <button 
+                    onClick={() => setShowCloudmarkLogs(!showCloudmarkLogs)}
+                    style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85em', fontWeight: 'bold' }}
+                  >
+                    {showCloudmarkLogs ? 'Hide Cloudmark Logs' : `View Cloudmark Logs (${data.cloudmark.logs.length})`}
+                  </button>
+                )}
                 {data.cloudmark?.listed ? <XCircle size={32} className="icon-red" /> : <CheckCircle size={32} className="icon-green" />}
               </div>
             </div>
+
+            {/* Expandable Cloudmark Logs Table */}
+            {showCloudmarkLogs && data.cloudmark?.logs?.length > 0 && (
+              <div style={{ marginTop: '16px', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '1em', color: '#a78bfa' }}>Recent Cloudmark Rejection Logs (Top 50)</h4>
+                <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                  {data.cloudmark.logs.map((log, lIdx) => (
+                    <div key={lIdx} style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85em' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ color: '#fff', fontWeight: 'bold' }}>Queue ID: {log.queue_id || 'N/A'} | Sender: {log.sender} &rarr; Recipient: {log.recipient}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.4)' }}>{log.date}</span>
+                      </div>
+                      <code style={{ display: 'block', color: '#ef4444', background: 'rgba(0,0,0,0.4)', padding: '6px 10px', borderRadius: '4px', wordBreak: 'break-all', fontSize: '0.82em', fontFamily: 'monospace' }}>
+                        {log.reason}
+                      </code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* DNSBL Blacklists Grid */}

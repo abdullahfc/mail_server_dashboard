@@ -446,15 +446,37 @@ app.get('/api/reputation', async (req, res) => {
     }));
 
     // Check Cloudmark CSI status from database log history
-    let cloudmarkStatus = { listed: false, count: 0 };
+    let cloudmarkStatus = { listed: false, count: 0, logs: [] };
     try {
-      const csiRows = await runQuery(`
+      const csiCountRows = await runQuery(`
         SELECT COUNT(*) as c FROM deliveries 
         WHERE (reason LIKE '%cloudmark%' OR reason LIKE '%csi.cloudmark.com%' OR reason LIKE '%CSI%') 
         AND (status = 'bounced' OR status = 'deferred')
       `);
-      if (csiRows && csiRows[0] && csiRows[0].c > 0) {
-        cloudmarkStatus = { listed: true, count: csiRows[0].c };
+      const totalCount = (csiCountRows && csiCountRows[0]) ? csiCountRows[0].c : 0;
+
+      if (totalCount > 0) {
+        const csiLogs = await runQuery(`
+          SELECT queue_id, sender, recipient, date, reason 
+          FROM deliveries 
+          WHERE (reason LIKE '%cloudmark%' OR reason LIKE '%csi.cloudmark.com%' OR reason LIKE '%CSI%') 
+          AND (status = 'bounced' OR status = 'deferred')
+          ORDER BY date DESC LIMIT 50
+        `);
+
+        const formattedLogs = csiLogs.map(r => {
+          const d = new Date(r.date);
+          const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toTimeString().split(' ')[0];
+          return {
+            queue_id: r.queue_id,
+            sender: r.sender,
+            recipient: r.recipient,
+            date: dateStr,
+            reason: r.reason
+          };
+        });
+
+        cloudmarkStatus = { listed: true, count: totalCount, logs: formattedLogs };
       }
     } catch (err) { /* ignore */ }
 
