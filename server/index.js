@@ -375,7 +375,7 @@ app.get('/api/trace', async (req, res) => {
   }
 });
 
-// GET /api/reputation
+// GET /api/reputation?ip=1.2.3.4
 app.get('/api/reputation', async (req, res) => {
   const dns = require('dns').promises;
   const https = require('https');
@@ -388,7 +388,7 @@ app.get('/api/reputation', async (req, res) => {
         https.get('https://api.ipify.org', (response) => {
           let data = '';
           response.on('data', chunk => data += chunk);
-          response.on('end', () => resolve(data));
+          response.on('end', () => resolve(data.trim()));
         }).on('error', reject);
       });
     }
@@ -396,13 +396,33 @@ app.get('/api/reputation', async (req, res) => {
     if (!ip) return res.status(400).json({ error: 'Could not detect IP' });
 
     // Reverse IP for DNSBL query
-    const reversedIp = ip.split('.').reverse().join('.');
+    const reversedIp = ip.trim().split('.').reverse().join('.');
     
     const blacklists = [
-      { name: 'Spamhaus', domain: 'zen.spamhaus.org' },
+      { name: 'Spamhaus ZEN', domain: 'zen.spamhaus.org' },
       { name: 'Barracuda', domain: 'b.barracudacentral.org' },
-      { name: 'Sorbs', domain: 'dnsbl.sorbs.net' },
-      { name: 'SpamCop', domain: 'bl.spamcop.net' }
+      { name: 'SpamCop', domain: 'bl.spamcop.net' },
+      { name: 'SORBS', domain: 'dnsbl.sorbs.net' },
+      { name: 'Spamhaus SBL', domain: 'sbl.spamhaus.org' },
+      { name: 'Spamhaus XBL', domain: 'xbl.spamhaus.org' },
+      { name: 'Abusix Mail Intelligence', domain: 'combined.mailintelligence.abusix.zone' },
+      { name: 'Blocklist.de', domain: 'bl.blocklist.de' },
+      { name: 'CBL', domain: 'cbl.abuseat.org' },
+      { name: 'PSBL (Surriel)', domain: 'psbl.surriel.com' },
+      { name: 'Mailspike BL', domain: 'rep.mailspike.net' },
+      { name: 'UCEPROTECT Level 1', domain: 'dnsbl-1.uceprotect.net' },
+      { name: 'UCEPROTECT Level 2', domain: 'dnsbl-2.uceprotect.net' },
+      { name: 'UCEPROTECT Level 3', domain: 'dnsbl-3.uceprotect.net' },
+      { name: 'SEM Black', domain: 'bl.spameatingimpls.com' },
+      { name: 'SEM Fresh', domain: 'fresh.spameatingimpls.com' },
+      { name: 'Truncate', domain: 'truncate.gbudb.net' },
+      { name: 'RBL JP', domain: 'rbl.jp' },
+      { name: 'BACKSCATTERER', domain: 'ips.backscatterer.org' },
+      { name: 'Hostkarma Black', domain: 'black.junkemailfilter.com' },
+      { name: 'SPFBL DNSBL', domain: 'dnsbl.spfbl.net' },
+      { name: 'ZapBL', domain: 'zapbl.net' },
+      { name: 'Drone BL', domain: 'dnsbl.dronebl.org' },
+      { name: 'SWINOG', domain: 'dnsbl.swinog.ch' }
     ];
 
     const results = await Promise.all(blacklists.map(async (bl) => {
@@ -425,8 +445,21 @@ app.get('/api/reputation', async (req, res) => {
       }
     }));
 
+    // Check Cloudmark CSI status from database log history
+    let cloudmarkStatus = { listed: false, count: 0 };
+    try {
+      const csiRows = await runQuery(`
+        SELECT COUNT(*) as c FROM deliveries 
+        WHERE (reason LIKE '%cloudmark%' OR reason LIKE '%csi.cloudmark.com%' OR reason LIKE '%CSI%') 
+        AND (status = 'bounced' OR status = 'deferred')
+      `);
+      if (csiRows && csiRows[0] && csiRows[0].c > 0) {
+        cloudmarkStatus = { listed: true, count: csiRows[0].c };
+      }
+    } catch (err) { /* ignore */ }
+
     const isListed = results.some(r => r.listed);
-    res.json({ ip, listed: isListed, blacklists: results });
+    res.json({ ip, listed: isListed, blacklists: results, cloudmark: cloudmarkStatus });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to check reputation' });
