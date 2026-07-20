@@ -458,26 +458,59 @@ app.get('/api/domain-health', async (req, res) => {
     const healthResults = await Promise.all(domains.map(async (domain) => {
       let spf = { valid: false, record: '' };
       let dmarc = { valid: false, record: '' };
+      let dkim = { valid: false, record: '', selector: '' };
+      let mx = { valid: false, records: [] };
+      let ns = { valid: false, records: [] };
       
       // Check SPF
       try {
         const txtRecords = await dns.resolveTxt(domain);
-        const spfRecord = txtRecords.flat().find(r => r.startsWith('v=spf1'));
-        if (spfRecord) {
-          spf = { valid: true, record: spfRecord };
+        const fullSpf = txtRecords.flat().join('');
+        if (fullSpf.includes('v=spf1')) {
+          spf = { valid: true, record: fullSpf };
         }
       } catch (err) { /* ignore */ }
       
       // Check DMARC
       try {
         const txtRecords = await dns.resolveTxt(`_dmarc.${domain}`);
-        const dmarcRecord = txtRecords.flat().find(r => r.startsWith('v=DMARC1'));
-        if (dmarcRecord) {
+        const dmarcRecord = txtRecords.flat().join('');
+        if (dmarcRecord.includes('v=DMARC1')) {
           dmarc = { valid: true, record: dmarcRecord };
         }
       } catch (err) { /* ignore */ }
 
-      return { domain, spf, dmarc };
+      // Check DKIM (Common Selectors)
+      const selectors = ['default', 'mail', 'dkim', 'google', 'k1', 's1', 'selector1'];
+      for (const sel of selectors) {
+        try {
+          const txtRecords = await dns.resolveTxt(`${sel}._domainkey.${domain}`);
+          const rec = txtRecords.flat().join('');
+          if (rec.includes('v=DKIM1') || rec.includes('k=rsa') || rec.includes('p=')) {
+            dkim = { valid: true, selector: sel, record: rec };
+            break;
+          }
+        } catch (err) { /* try next */ }
+      }
+
+      // Check MX Records
+      try {
+        const mxRecords = await dns.resolveMx(domain);
+        if (mxRecords && mxRecords.length > 0) {
+          mxRecords.sort((a, b) => a.priority - b.priority);
+          mx = { valid: true, records: mxRecords.map(r => `${r.priority} ${r.exchange}`) };
+        }
+      } catch (err) { /* ignore */ }
+
+      // Check NS / DNS Provider
+      try {
+        const nsRecords = await dns.resolveNs(domain);
+        if (nsRecords && nsRecords.length > 0) {
+          ns = { valid: true, records: nsRecords };
+        }
+      } catch (err) { /* ignore */ }
+
+      return { domain, spf, dmarc, dkim, mx, ns };
     }));
 
     res.json({ health: healthResults });

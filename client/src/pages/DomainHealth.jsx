@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Globe, CheckCircle, XCircle } from 'lucide-react';
+import { Activity, Globe, CheckCircle, XCircle, Key, Server } from 'lucide-react';
 
 const DomainHealth = () => {
   const [data, setData] = useState([]);
@@ -96,41 +96,96 @@ const DomainHealth = () => {
 
         {data.map((item, idx) => (
           <div key={idx} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
-              <Globe size={28} style={{ color: '#3b82f6' }} />
-              <h3 style={{ margin: 0, fontSize: '1.4em' }}>{item.domain}</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Globe size={28} style={{ color: '#3b82f6' }} />
+                <h3 style={{ margin: 0, fontSize: '1.4em' }}>{item.domain}</h3>
+              </div>
+
+              {/* NS / DNS Provider Badge */}
+              {item.ns && item.ns.records && item.ns.records.length > 0 && (
+                <div style={{ fontSize: '0.85em', padding: '6px 12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', color: '#93c5fd' }}>
+                  <strong>DNS Provider NS:</strong> {item.ns.records.join(', ')}
+                </div>
+              )}
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="grid-2-cols" style={{ gap: '16px' }}>
               {/* SPF Box */}
-              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${item.spf.valid ? '#10b981' : '#ef4444'}` }}>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${item.spf?.valid ? '#10b981' : '#ef4444'}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <strong style={{ fontSize: '1.2em' }}>SPF (Sender Policy Framework)</strong>
-                  {item.spf.valid ? <CheckCircle size={24} className="icon-green" /> : <XCircle size={24} className="icon-red" />}
+                  <strong style={{ fontSize: '1.1em' }}>SPF (Sender Policy Framework)</strong>
+                  {item.spf?.valid ? <CheckCircle size={22} className="icon-green" /> : <XCircle size={22} className="icon-red" />}
                 </div>
-                {item.spf.valid ? (
+                {item.spf?.valid ? (
                   <div>
-                    <span style={{ color: '#10b981', display: 'block', marginBottom: '4px' }}>Valid Record Found</span>
-                    <code style={{ fontSize: '0.85em', color: 'rgba(255,255,255,0.5)', wordBreak: 'break-all' }}>{item.spf.record}</code>
+                    <span style={{ color: '#10b981', display: 'block', marginBottom: '4px', fontSize: '0.9em', fontWeight: 'bold' }}>Valid Record Found</span>
+                    <code style={{ fontSize: '0.85em', color: 'rgba(255,255,255,0.6)', wordBreak: 'break-all' }}>{item.spf.record}</code>
                   </div>
                 ) : (
-                  <span style={{ color: '#ef4444' }}>No valid SPF record found. Emails may bounce.</span>
+                  <span style={{ color: '#ef4444', fontSize: '0.9em' }}>No valid SPF record found. Emails may bounce.</span>
+                )}
+              </div>
+
+              {/* DKIM Box */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${item.dkim?.valid ? '#10b981' : '#f59e0b'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <strong style={{ fontSize: '1.1em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Key size={18} /> DKIM Signature
+                  </strong>
+                  {item.dkim?.valid ? <CheckCircle size={22} className="icon-green" /> : <XCircle size={22} className="icon-yellow" />}
+                </div>
+                {item.dkim?.valid ? (
+                  <div>
+                    <span style={{ color: '#10b981', display: 'block', marginBottom: '4px', fontSize: '0.9em', fontWeight: 'bold' }}>
+                      Valid Key Found ({item.dkim.selector}._domainkey)
+                    </span>
+                    <code style={{ fontSize: '0.85em', color: 'rgba(255,255,255,0.6)', wordBreak: 'break-all' }}>{item.dkim.record}</code>
+                  </div>
+                ) : (
+                  <span style={{ color: '#f59e0b', fontSize: '0.9em' }}>No default DKIM selector found on common keys.</span>
                 )}
               </div>
 
               {/* DMARC Box */}
-              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${item.dmarc.valid ? '#10b981' : '#ef4444'}` }}>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${item.dmarc?.valid ? '#10b981' : '#ef4444'}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <strong style={{ fontSize: '1.2em' }}>DMARC</strong>
-                  {item.dmarc.valid ? <CheckCircle size={24} className="icon-green" /> : <XCircle size={24} className="icon-red" />}
+                  <strong style={{ fontSize: '1.1em' }}>DMARC Policy</strong>
+                  {item.dmarc?.valid ? <CheckCircle size={22} className="icon-green" /> : <XCircle size={22} className="icon-red" />}
                 </div>
-                {item.dmarc.valid ? (
+                {item.dmarc?.valid ? (
                   <div>
-                    <span style={{ color: '#10b981', display: 'block', marginBottom: '4px' }}>Valid Record Found</span>
-                    <code style={{ fontSize: '0.85em', color: 'rgba(255,255,255,0.5)', wordBreak: 'break-all' }}>{item.dmarc.record}</code>
+                    <span style={{ color: '#10b981', display: 'block', marginBottom: '4px', fontSize: '0.9em', fontWeight: 'bold' }}>Valid Policy Found</span>
+                    <code style={{ fontSize: '0.85em', color: 'rgba(255,255,255,0.6)', wordBreak: 'break-all' }}>{item.dmarc.record}</code>
                   </div>
                 ) : (
-                  <span style={{ color: '#ef4444' }}>No valid DMARC record found. Vulnerable to spoofing.</span>
+                  <span style={{ color: '#ef4444', fontSize: '0.9em' }}>No valid DMARC record found. Vulnerable to spoofing.</span>
+                )}
+              </div>
+
+              {/* MX Records Box */}
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', borderLeft: `4px solid ${item.mx?.valid ? '#10b981' : '#ef4444'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <strong style={{ fontSize: '1.1em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Server size={18} /> MX Mail Exchangers
+                  </strong>
+                  {item.mx?.valid ? <CheckCircle size={22} className="icon-green" /> : <XCircle size={22} className="icon-red" />}
+                </div>
+                {item.mx?.valid && item.mx.records.length > 0 ? (
+                  <div>
+                    <span style={{ color: '#10b981', display: 'block', marginBottom: '4px', fontSize: '0.9em', fontWeight: 'bold' }}>
+                      {item.mx.records.length} MX Server(s) Configured
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      {item.mx.records.map((mxRec, mIdx) => (
+                        <code key={mIdx} style={{ fontSize: '0.85em', color: 'rgba(255,255,255,0.6)' }}>
+                          {mxRec}
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <span style={{ color: '#ef4444', fontSize: '0.9em' }}>No MX records configured. Cannot receive emails.</span>
                 )}
               </div>
             </div>
