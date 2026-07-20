@@ -117,9 +117,9 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='bounced' AND is_spam=1 AND ${dateClause}`),
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status='incoming_spam' AND is_spam=1 AND ${dateClause}`),
       
-      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain='gmail.com' AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
-      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('outlook.com', 'hotmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
-      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status='bounced' AND domain IN ('yahoo.com', 'ymail.com', 'rocketmail.com') AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${isGmailSQL} AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${isOutlookSQL} AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
+      runQuery(`SELECT sender as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${isYahooSQL} AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
       
       runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE is_invalid=1 AND ${dateClause} GROUP BY recipient ORDER BY count DESC`),
       runQuery(`SELECT SUBSTR(sender, INSTR(sender, '@') + 1) as domain, COUNT(*) as count FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause} GROUP BY domain ORDER BY count DESC`),

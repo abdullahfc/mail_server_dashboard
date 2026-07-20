@@ -92,6 +92,7 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
         <StatCard 
           title="Total Bounces/Deferred" 
           value={stats.totalErrors} 
+          percentage={calcPercentage(stats.totalErrors)}
           subText={`Bounces: ${stats.totalBouncesOnly || 0} | Deferred: ${stats.totalDeferredOnly || 0}`}
           icon={<AlertCircle size={24} />} 
           colorClass="icon-red"
@@ -248,7 +249,11 @@ const DashboardHome = ({ stats, timeRange, setTimeRange }) => {
       </div>
 
       <div className="grid-2-cols" style={{ marginTop: '24px' }}>
+        <DataTable title="Outlook Bounces by Sender Domain" data={stats.topBouncedDomainsOutlook} valueKey="domain" delay="delay-4" />
         <DataTable title="Domains Reporting Spam" data={stats.topSpamDomains} valueKey="domain" delay="delay-5" />
+      </div>
+
+      <div className="grid-2-cols" style={{ marginTop: '24px' }}>
         <DataTable title="Blocked Email Addresses" data={stats.blockedDomains} valueKey="email" delay="delay-5" />
       </div>
     </>
