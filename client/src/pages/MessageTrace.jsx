@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Activity, Mail, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const SmtpBadge = ({ reason }) => {
@@ -43,15 +44,15 @@ const SmtpBadge = ({ reason }) => {
 };
 
 const MessageTrace = () => {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
 
-  const handleTrace = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  const performTrace = async (searchQuery) => {
+    if (!searchQuery.trim()) return;
     
     setLoading(true);
     setError(null);
@@ -59,8 +60,8 @@ const MessageTrace = () => {
     
     try {
       const apiUrl = import.meta.env.DEV 
-        ? `http://localhost:3001/api/trace?query=${encodeURIComponent(query)}` 
-        : `/api/trace?query=${encodeURIComponent(query)}`;
+        ? `http://localhost:3001/api/trace?query=${encodeURIComponent(searchQuery)}` 
+        : `/api/trace?query=${encodeURIComponent(searchQuery)}`;
         
       const res = await fetch(apiUrl);
       if (!res.ok) throw new Error('Trace failed');
@@ -72,6 +73,19 @@ const MessageTrace = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const urlQuery = searchParams.get('query');
+    if (urlQuery) {
+      setQuery(urlQuery);
+      performTrace(urlQuery);
+    }
+  }, [searchParams]);
+
+  const handleTrace = (e) => {
+    e.preventDefault();
+    performTrace(query);
   };
 
   const getStatusIcon = (status) => {
