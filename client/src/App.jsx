@@ -88,7 +88,7 @@ const Sidebar = () => {
           <div style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%', animation: 'pulse 2s infinite' }}></div>
           <span>Live Logs</span>
         </div>
-        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>v1.2.0</span>
+        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>v1.3.0</span>
       </div>
     </aside>
   );

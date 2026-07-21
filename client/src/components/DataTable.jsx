@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DataTable = ({ title, data, valueKey, delay }) => (
+const DataTable = ({ title, data, valueKey, delay, countLabel }) => (
   <div className={`glass-panel fade-in ${delay}`}>
     <h2>{title}</h2>
     {data && data.length > 0 ? (
@@ -9,7 +9,7 @@ const DataTable = ({ title, data, valueKey, delay }) => (
           <thead>
             <tr>
               <th>{valueKey === 'domain' ? 'Domain' : 'Email Address'}</th>
-              <th style={{ textAlign: 'right' }}>Errors / Bounces</th>
+              <th style={{ textAlign: 'right' }}>{countLabel || 'Errors / Bounces'}</th>
             </tr>
           </thead>
           <tbody>
