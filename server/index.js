@@ -97,6 +97,7 @@ app.get('/api/stats', async (req, res) => {
       topSpamDomainsOutput,
       domainNotFoundOutput,
       topRecipientEmailsAllOutput,
+      topSenderEmailsVolumeOutput,
       historicalDataRaw
     ] = await Promise.all([
       runQuery(`SELECT COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE status IN ('bounced', 'deferred') AND ${dateClause}`),
