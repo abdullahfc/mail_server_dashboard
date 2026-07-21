@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { 
   Activity, AlertTriangle, LayoutDashboard, Search, ShieldAlert, ShieldCheck, 
-  Globe, Mail, ShieldX, UserX
+  Globe, Mail, ShieldX, UserX, Send
 } from 'lucide-react';
 import './index.css';
 
@@ -48,6 +48,10 @@ const Sidebar = () => {
       </Link>
 
       <div className="sidebar-nav-title">Logs & Filters</div>
+      <Link to="/logs/sender_volume" className={`sidebar-link ${isActive('/logs/sender_volume') ? 'active' : ''}`}>
+        <Send size={18} />
+        <span>Daily Sender Volume</span>
+      </Link>
       <Link to="/logs/other" className={`sidebar-link ${isActive('/logs/other') ? 'active' : ''}`}>
         <AlertTriangle size={18} />
         <span>Domains Causing Errors</span>

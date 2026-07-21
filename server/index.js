@@ -127,6 +127,7 @@ app.get('/api/stats', async (req, res) => {
       runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE (reason LIKE '%blocked%' OR reason LIKE '%CSI%' OR reason LIKE '%Cloudmark%' OR reason LIKE '%blacklist%' OR reason LIKE '%rbl%' OR reason LIKE '%dnsbl%' OR reason LIKE '%denied%') AND ${dateClause} GROUP BY recipient ORDER BY count DESC`),
       
       runQuery(`SELECT recipient as email, COUNT(*) as count FROM deliveries WHERE status='sent' AND ${dateClause} GROUP BY recipient ORDER BY count DESC`),
+      runQuery(`SELECT sender as email, COUNT(*) as count FROM deliveries WHERE status='sent' AND sender != '' AND sender NOT LIKE '%unknown%' AND ${dateClause} GROUP BY sender ORDER BY count DESC`),
       
       runQuery(`SELECT date(date) as day, status, COUNT(DISTINCT queue_id || recipient) as c FROM deliveries WHERE ${dateClause} GROUP BY day, status`)
     ]);
@@ -190,6 +191,7 @@ app.get('/api/stats', async (req, res) => {
       topRecipientEmailsError: topRecipientEmailsOutput,
       topRecipientDomainsError: topRecipientDomainsOutput,
       topRecipientEmailsAll: topRecipientEmailsAllOutput,
+      topSenderEmailsVolume: topSenderEmailsVolumeOutput,
       topSpamDomains: topSpamDomainsOutput,
       blockedDomains: domainNotFoundOutput,
       historicalData: historicalData
@@ -243,6 +245,24 @@ app.get('/api/logs', async (req, res) => {
     else if (type === 'outlook') whereClause += ` AND status IN ('bounced', 'deferred') AND ${isOutlookSQL}`;
     else if (type === 'yahoo') whereClause += ` AND status IN ('bounced', 'deferred') AND ${isYahooSQL}`;
     else if (type === 'other') whereClause += ` AND status IN ('bounced', 'deferred') AND ${isOtherSQL}`;
+
+    if (type === 'sender_volume') {
+      let volumeQuery = `SELECT sender as email, COUNT(*) as count, 
+        SUM(CASE WHEN status='sent' THEN 1 ELSE 0 END) as sent_count,
+        SUM(CASE WHEN status='bounced' THEN 1 ELSE 0 END) as bounced_count,
+        SUM(CASE WHEN status='deferred' THEN 1 ELSE 0 END) as deferred_count
+        FROM deliveries WHERE sender != '' AND sender NOT LIKE '%unknown%' AND ${dateClause}`;
+      
+      const volumeParams = [];
+      if (search) {
+        volumeQuery += ` AND sender LIKE ?`;
+        volumeParams.push(`%${search}%`);
+      }
+      volumeQuery += ` GROUP BY sender ORDER BY sent_count DESC LIMIT 200`;
+      
+      const volumeRows = await runQuery(volumeQuery, volumeParams);
+      return res.json({ logs: volumeRows });
+    }
 
     if (search) {
       // Safe parameterized search in SQLite

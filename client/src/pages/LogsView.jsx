@@ -96,7 +96,8 @@ const LogsView = () => {
       spam: 'SPAM Blocked Emails',
       outgoing_spam: 'Domains Marking Our Emails as SPAM',
       incoming_spam: 'Incoming SPAM Emails Blocked',
-      queue: 'Active Mail Queue'
+      queue: 'Active Mail Queue',
+      sender_volume: 'Daily Sending Volume by Sender Email'
     };
     return titles[type] || 'Email Logs';
   };
@@ -165,31 +166,67 @@ const LogsView = () => {
           </div>
         ) : (
           <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '600px' }}>
-            <table className="data-table" style={{ width: '100%', minWidth: '800px' }}>
-              <thead>
-                <tr>
-                  <th style={{ width: '15%' }}>QUEUE ID</th>
-                  <th style={{ width: '25%' }}>EMAIL</th>
-                  <th style={{ width: '20%' }}>DATE</th>
-                  <th style={{ width: '40%' }}>REASON</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log, index) => (
-                  <tr key={index}>
-                    <td style={{ fontFamily: 'monospace', color: '#94a3b8' }}>{log.queue_id || '-'}</td>
-                    <td style={{ color: '#60a5fa', fontWeight: '500' }}>{log.email}</td>
-                    <td style={{ color: 'rgba(255,255,255,0.7)' }}>{log.date}</td>
-                    <td style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', wordBreak: 'break-word' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <SmtpBadge reason={log.reason} />
-                        <span>{log.reason}</span>
-                      </div>
-                    </td>
+            {type === 'sender_volume' ? (
+              <table className="data-table" style={{ width: '100%', minWidth: '800px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '40%' }}>SENDER EMAIL ADDRESS</th>
+                    <th style={{ width: '20%' }}>TOTAL SENT</th>
+                    <th style={{ width: '15%' }}>BOUNCES</th>
+                    <th style={{ width: '15%' }}>DEFERRED</th>
+                    <th style={{ width: '10%' }}>ACTION</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logs.map((log, index) => (
+                    <tr key={index}>
+                      <td style={{ fontWeight: 'bold', color: '#60a5fa' }}>{log.email || log.sender}</td>
+                      <td style={{ fontWeight: 'bold', color: '#10b981' }}>{log.sent_count || log.count || 0}</td>
+                      <td style={{ color: (log.bounced_count > 0) ? '#ef4444' : 'rgba(255,255,255,0.5)', fontWeight: (log.bounced_count > 0) ? 'bold' : 'normal' }}>
+                        {log.bounced_count || 0}
+                      </td>
+                      <td style={{ color: (log.deferred_count > 0) ? '#f59e0b' : 'rgba(255,255,255,0.5)', fontWeight: (log.deferred_count > 0) ? 'bold' : 'normal' }}>
+                        {log.deferred_count || 0}
+                      </td>
+                      <td>
+                        <button 
+                          onClick={() => navigate(`/trace?query=${encodeURIComponent(log.email || log.sender)}`)}
+                          style={{ padding: '4px 12px', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '4px', color: '#93c5fd', cursor: 'pointer', fontSize: '0.8em', fontWeight: 'bold' }}
+                        >
+                          Trace
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="data-table" style={{ width: '100%', minWidth: '800px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '15%' }}>QUEUE ID</th>
+                    <th style={{ width: '25%' }}>EMAIL</th>
+                    <th style={{ width: '20%' }}>DATE</th>
+                    <th style={{ width: '40%' }}>REASON</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log, index) => (
+                    <tr key={index}>
+                      <td style={{ fontFamily: 'monospace', color: '#94a3b8' }}>{log.queue_id || '-'}</td>
+                      <td style={{ color: '#60a5fa', fontWeight: '500' }}>{log.email}</td>
+                      <td style={{ color: 'rgba(255,255,255,0.7)' }}>{log.date}</td>
+                      <td style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)', wordBreak: 'break-word' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <SmtpBadge reason={log.reason} />
+                          <span>{log.reason}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>
